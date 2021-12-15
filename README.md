@@ -15,7 +15,7 @@ pip install -r requirements.txt
 ```
 
 Install the submodules:
-``` r
+``` bash
 cd scripts/vartools && python setup.py develop && ../..
 cd scripts/fast_obstacle_avoidance && python setup.py develop && ../..
 ```
