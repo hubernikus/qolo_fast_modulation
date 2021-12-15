@@ -9,6 +9,7 @@ QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 import sys
 import os
 import warnings
+import signal
 
 from timeit import default_timer as timer
 
@@ -34,6 +35,8 @@ except:
 from std_msgs.msg import Float32MultiArray
 # from std_msgs.msg import String, Bool
 from sensor_msgs.msg import LaserScan
+
+from vartools.states import ObjectPose
     
     
 # from std_msgs.msg import MultiArrayLayout, MultiArrayDimension
@@ -54,8 +57,6 @@ except:
     if not path_avoidance in sys.path:
         sys.path.append(path_avoidance)
 
-        
-    breakpoint()
     from fast_obstacle_avoidance.control_robot import ControlRobot
 
 # Custom libraries
@@ -68,14 +69,17 @@ class ControllerQOLO:
     MAX_SPEED = 0.65    # m/s
 
     delta_angle_rear = np.pi,
-    delta_position_rear = np.arary([0.75, 0.0])
+    delta_position_rear = np.array([0.75, 0.0])
 
     def __init__(self):
+        rospy.init_node('qolo_controller')
+
         # Create ctrl-c handler
-        signal.signal(signal.SIGINT, ObstacleAvoidanceController.control_c_handler)
+        signal.signal(signal.SIGINT, self.control_c_handler)
 
         # Angular velocity difference
         self.diff_angular = 0
+
     
     def callback_laserscan_front(self, msg):
         with lock:
@@ -179,7 +183,7 @@ class ControllerQOLO:
         self.pub_qolo_command.publish(data_remote)
 
 
-class ControllerSharedLaserscan(ControllerROS):
+class ControllerSharedLaserscan(ControllerQOLO):
     def callback_remote(self, msg, tranform_to_global_frame=False):
         """ Get remote message and return velocity in global frame. """
         with lock:
@@ -249,10 +253,10 @@ class ControllerSharedLaserscan(ControllerROS):
             print("Awaiting first messages...")
             
             if self.msg_laserscan_front is None:
-                print("Waiting for pose.")
+                print("Waiting for front_scan.")
 
             if self.msg_laserscan_rear is None:
-                print("Waiting for laserscan.")
+                print("Waiting for rear_scan.")
         
         self.it_count = 0
 
