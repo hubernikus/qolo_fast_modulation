@@ -1,3 +1,6 @@
 [submodule "scripts/fast_obstacle_avoidance"]
 	path = scripts/fast_obstacle_avoidance
 	url = https://github.com/hubernikus/fast_obstacle_avoidance
+[submodule "scripts/various_tools"]
+	path = scripts/various_tools
+	url = https://github.com/hubernikus/various_tools
