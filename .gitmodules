@@ -1,0 +1,3 @@
+[submodule "scripts/fast_obstacle_avoidance"]
+	path = scripts/fast_obstacle_avoidance
+	url = https://github.com/hubernikus/fast_obstacle_avoidance
