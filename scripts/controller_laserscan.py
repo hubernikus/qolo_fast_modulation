@@ -72,8 +72,8 @@ from fast_obstacle_avoidance.utils import laserscan_to_numpy
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
     # MAX_SPEED = 0.65    # m/s
-    MAX_ANGULAR_SPEED = 0.3      # rad/s
-    MAX_SPEED = 0.3    # m/s
+    MAX_ANGULAR_SPEED = 0.6      # rad/s
+    MAX_SPEED = 0.6    # m/s
 
     delta_angle_rear = np.pi
     delta_position_rear = np.array([0.75, 0.0])

@@ -33,3 +33,8 @@ source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
+
+# Error Bug
+> check that all breaks are released (!)
+Release them by pressing at both extreme ends of the torso-force sensors simultaneously (!)
+
