@@ -6,10 +6,15 @@ QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 # Created: 2021-12-15
 # Email: lukas.huber@epfl.ch
 
-import sys
 import os
+import sys
+
+import logging
 import warnings
 import signal
+
+import copy
+import time
 
 from timeit import default_timer as timer
 
@@ -32,7 +37,7 @@ except:
     print("Could not import critical rospackages.")
     raise
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 # from std_msgs.msg import String, Bool
 from sensor_msgs.msg import LaserScan
 
@@ -65,11 +70,15 @@ from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
 class ControllerQOLO:
-    MAX_ANGULAR_SPEED = 0.6      # rad/s
-    MAX_SPEED = 0.65    # m/s
+    # MAX_ANGULAR_SPEED = 0.6      # rad/s
+    # MAX_SPEED = 0.65    # m/s
+    MAX_ANGULAR_SPEED = 0.3      # rad/s
+    MAX_SPEED = 0.3    # m/s
 
-    delta_angle_rear = np.pi,
+    delta_angle_rear = np.pi
     delta_position_rear = np.array([0.75, 0.0])
+
+    dimension = 2
 
     def __init__(self):
         rospy.init_node('qolo_controller')
@@ -80,6 +89,9 @@ class ControllerQOLO:
         # Angular velocity difference
         self.diff_angular = 0
 
+        # Shutdown variable
+        self.shutdown_finished = False
+
     
     def callback_laserscan_front(self, msg):
         with lock:
@@ -88,39 +100,30 @@ class ControllerQOLO:
     def callback_laserscan_rear(self, msg):
         with lock:
             self.msg_laserscan_rear = laserscan_to_numpy(
-                msg, delta_angle=delta_angle_rear, delta_position=delta_position_rear
+                msg, delta_angle=self.delta_angle_rear,
+                delta_position=self.delta_position_rear
             )
 
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
-        print('\nCaught ctrl-c by user. Shutdown is initiated ...')
+        logging.warning('\nCaught ctrl-c by user. Shutdown is initiated ...')
         self.shutdown()
         rospy.signal_shutdown('Caught ctrl-c by user. Shutdown is initiated ...')
 
     def shutdown(self):
         """ User defined shutdown command."""
 
-        print("\nDoing shutdown.")
-        # lock.acquire()
+        logging.info("\nDoing shutdown.")
         if self.shutdown_finished:
             return
 
         # Published repeated zero velocity to ensure stand-still
         for ii in range(10):
-            if IS_SIMULATION:
-                self.publish_twist(0, 0) 
-            else:
-                self.publish_command(0, 0)
+            self.publish_command(0, 0)
             rospy.sleep(0.01) # ? why error...
 
-        if LOG_ENVIORNMENT:
-            self.write_file.close()
-            print("\n Saved data to file ...\n")
-
-                  
         self.shutdown_finished = True
-        # lock.release()
-        print("\nShutdown successful.")
+        logging.info("\nShutdown successful.")
         
     def controller_robot(self, vel_desired,
                          max_delta_angle=180./180*np.pi, p_angular=0.5, ):
@@ -147,25 +150,25 @@ class ControllerQOLO:
 
         if abs(command_angular) > (2*self.MAX_ANGULAR_SPEED):
             # Only rotate in this scenario
-            command_angular = np.copysign(max_command_angular, command_angular)
+            command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
             command_linear = 0
 
         return command_linear, command_angular
 
         
-    def publish_command(self, command_linear, command_angular, tt=None):
+    def publish_command(self, command_linear, command_angular):
         """  Command to QOLO motor [Real Implementation]. 
         Includes MASTER CHECK if linear/angular velocity reached limit
         """
         if np.abs(command_linear) > self.MAX_SPEED:
             # warnings.warn("Max linear velocity exceeded.")
             # rospy.logwarn("Max linear velocity exceeded.")
-            command_linear = np.copysign(MAX_SPEED, command_linear)
+            command_linear = np.copysign(self.MAX_SPEED, command_linear)
 
         if np.abs(command_angular) > self.MAX_ANGULAR_SPEED:
             # warnings.warn("Max angular velocity exceeded.")
             # rospy.logwarn("Max angular velocity exceeded.")
-            command_linear = np.copysign(MAX_ANGULAR_SPEED, command_angular)
+            command_linear = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
         
         data_remote = Float32MultiArray()
         data_remote.layout.dim.append(MultiArrayDimension())
@@ -173,11 +176,8 @@ class ControllerQOLO:
         data_remote.layout.dim[0].size = 3
         data_remote.data = [0]*3
 
-        if tt is None:
-            # Use 'time' since 'rospy.time' is a too large float
-            msg_time = round(time.clock(), 4)
-        else:
-            msg_time = round(tt, 4)
+        # Use 'time' since 'rospy.time' is a too large float
+        msg_time = round(time.perf_counter(), 4)
 
         data_remote.data = [msg_time, command_linear, command_angular]
         self.pub_qolo_command.publish(data_remote)
@@ -187,9 +187,9 @@ class ControllerSharedLaserscan(ControllerQOLO):
     def callback_remote(self, msg, tranform_to_global_frame=False):
         """ Get remote message and return velocity in global frame. """
         with lock:
-            (msg_time, self.self.command_linear, self.command_angular) = msg.data
+            (msg_time, command_linear, command_angular) = msg.data
 
-            if self.qolo.control_points.shape[0] > 1:
+            if self.qolo.control_points.shape[1] > 1:
                 raise NotImplementedError()
             ii = 0
             velocity = np.array([
@@ -214,6 +214,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.msg_laserscan_rear = None
 
         self.remote_velocity = None
+
+        self.remote_velocity_local = np.zeros(self.dimension)
 
         # QOLO State and geometry definition
         self.qolo = ControlRobot(
@@ -241,6 +243,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.sub_laserscan_front = rospy.Subscriber('/front_lidar/scan',
                                                    LaserScan, self.callback_laserscan_front)
 
+        ##### Publisher #####
+        self.pub_qolo_command = rospy.Publisher(
+            'qolo/remote_commands', Float32MultiArray, queue_size=1)
+        
+
         # Define avoider object
         self.fast_avoider = FastObstacleAvoider(robot=self.qolo)
         
@@ -250,32 +257,53 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 or self.msg_laserscan_rear is None)
                and not rospy.is_shutdown()
                ):
-            print("Awaiting first messages...")
+            logging.info("Awaiting first messages...")
             
             if self.msg_laserscan_front is None:
-                print("Waiting for front_scan.")
+                logging.info("Waiting for front_scan.")
 
             if self.msg_laserscan_rear is None:
-                print("Waiting for rear_scan.")
+                logging.info("Waiting for rear_scan.")
+
+            self.rate.sleep()
         
         self.it_count = 0
 
         # Starting main loop
-        print("\nStarting looping")
+        logging.info("\nStarting looping")
         while not rospy.is_shutdown():
             # Start with sleep for initialization & error in case of shutdown
             self.rate.sleep()
             
             with lock:
-                self.fast_avoider.update_laserscan(self.static_laserscan)
-                modulated_velocity = self.fast_avoider.Evaluate(initial_velocity)
+                # TODO: check if laserscan has been updated
+                self.fast_avoider.update_laserscan(
+                    np.hstack((self.msg_laserscan_rear, self.msg_laserscan_front)))
 
+                # modulated_velocity = self.fast_avoider.evaluate(self.remote_velocity_local)
+                modulated_velocity = copy.deepcopy(self.remote_velocity_local)
+
+                print()
+                print('mod vel', modulated_velocity)
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
-                self.publish_velocity(command_linear, command_angular)
+                print('lin= {},   ang= {}'.format(command_linear, command_angular))
+                self.publish_command(command_linear, command_angular)
                 
             self.it_count += 1
 
 
 if (__name__)=="__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        # filename='example.log',
+        handlers=[logging.StreamHandler()]
+        )
+
+    logging.info("Setting up controller.")
     main_controller = ControllerSharedLaserscan()
+
+    logging.info("Starting controller.")
     main_controller.run()
+
+
+    print("\nLet's call it a day and go home.\n")
