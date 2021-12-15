@@ -31,28 +31,34 @@ except:
     print("Could not import critical rospackages.")
     raise
 
-from std_msgs.msg import Float32MultiArray, String, Bool
-from std_msgs.msg import LaserScan
+from std_msgs.msg import Float32MultiArray
+# from std_msgs.msg import String, Bool
+from sensor_msgs.msg import LaserScan
+    
+    
 # from std_msgs.msg import MultiArrayLayout, MultiArrayDimension
 # from geometry_msgs.msg import Twist, TwistStamped, Pose2D
 
 
 try:
-    import fast_obstacle_avoidance
+    from fast_obstacle_avoidance.control_robot import ControlRobot
+    
 except:
     # rospack = rospkg.RosPack()
     # Add obstacle avoidance without 'setting' up
-    
-    # directory_path = rospack.get_path('qolo_modulation')
-    directory_path = '/home/qolo/autonomy_ws/libs/fast_obstacle_avoidance'
+    # directory_path = rospack.get_path('qolo_fast_modulation')
+    directory_path =  '/home/qolo/autonomy_ws/src/qolo_fast_modulation'
 
-    path_avoidance = os.path.join(directory_path, "scripts", "dynamic_obstacle_avoidance", "src")
+    path_avoidance = os.path.join(
+        directory_path, "scripts", "fast_obstacle_avoidance")
     if not path_avoidance in sys.path:
         sys.path.append(path_avoidance)
 
+        
+    breakpoint()
+    from fast_obstacle_avoidance.control_robot import ControlRobot
 
 # Custom libraries
-from fast_obstacle_avoidance.control_robot import ControlRobot
 from fast_obstacle_avoidance.obstacle_avoider import FastObstacleAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
