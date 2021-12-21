@@ -72,14 +72,14 @@ from fast_obstacle_avoidance.utils import laserscan_to_numpy
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
     # MAX_SPEED = 0.65    # m/s
-    MAX_ANGULAR_SPEED = 0.6      # rad/s
-    MAX_SPEED = 0.6    # m/s
+    MAX_ANGULAR_SPEED = 0.3      # rad/s
+    MAX_SPEED = 0.3    # m/s
 
     delta_angle_rear = np.pi
     delta_position_rear = np.array([0.75, 0.0])
 
     dimension = 2
-
+    
     def __init__(self):
         rospy.init_node('qolo_controller')
 
@@ -180,12 +180,14 @@ class ControllerQOLO:
         msg_time = round(time.perf_counter(), 4)
 
         data_remote.data = [msg_time, command_linear, command_angular]
+        # warnings.warn("Not publishing here though..")
         self.pub_qolo_command.publish(data_remote)
 
 
 class ControllerSharedLaserscan(ControllerQOLO):
     def callback_remote(self, msg, tranform_to_global_frame=False):
         """ Get remote message and return velocity in global frame. """
+        # Immediate republish
         with lock:
             (msg_time, command_linear, command_angular) = msg.data
 
@@ -246,7 +248,6 @@ class ControllerSharedLaserscan(ControllerQOLO):
         ##### Publisher #####
         self.pub_qolo_command = rospy.Publisher(
             'qolo/remote_commands', Float32MultiArray, queue_size=1)
-        
 
         # Define avoider object
         self.fast_avoider = FastObstacleAvoider(robot=self.qolo)
@@ -280,8 +281,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 self.fast_avoider.update_laserscan(
                     np.hstack((self.msg_laserscan_rear, self.msg_laserscan_front)))
 
-                # modulated_velocity = self.fast_avoider.evaluate(self.remote_velocity_local)
-                modulated_velocity = copy.deepcopy(self.remote_velocity_local)
+                modulated_velocity = self.fast_avoider.evaluate(self.remote_velocity_local)
 
                 print()
                 print('mod vel', modulated_velocity)
