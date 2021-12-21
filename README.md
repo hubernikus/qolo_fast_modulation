@@ -3,10 +3,9 @@ QOLO Fast Modulation
 
 
 # Clone and Setup
-Clone the environment including submodules.
+Clone the environment including submodules (wihtout ssh).
 ``` bash
-git clone --recurse-submodules -j8 git://github.com/foo/bar.git
-
+git clone --recurse-submodules -j8 https://github.com/hubernikus/qolo_fast_modulation
 ```
 
 Setup virtual environment (use whatever compatible environment manager that you have with Python >3.7).
