@@ -63,7 +63,7 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG = True
+DEBUG_FLAG = False
 
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
@@ -290,8 +290,8 @@ if (__name__)=="__main__":
     print("Setting up controller.")
 
     if DEBUG_FLAG:
-        print("[WARNING] Debug flag is on - which slows down the simulation significatnly.")
-        plt.pause(1.0)
+        print("\n[WARNING] Debug flag is on - which slows down the simulation significatnly.\n")
+        time.sleep(1.0)
     
     main_controller = ControllerSharedLaserscan()
 
