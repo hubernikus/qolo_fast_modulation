@@ -9,14 +9,14 @@ from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 
 class FastWheelSpinning():
     def __init__(self):
-        rospy.init_node('basic_wheel_controller')
+        rospy.init_node('wheel_callibrator')
 
         # Create ctrl-c handler
         signal.signal(signal.SIGINT, self.control_c_handler)
 
         self.loop_rate = 100
         self.rate = rospy.Rate(self.loop_rate) # Hz
-        
+
         self.pub_qolo_command = rospy.Publisher(
             'qolo/remote_commands', Float32MultiArray, queue_size=1)
 
@@ -46,7 +46,7 @@ class FastWheelSpinning():
             # Start with sleep for initialization & error in case of shutdown
             self.publish_command(1, 0)
             self.rate.sleep()
-        
+
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
         print('\nCaught ctrl-c by user. Shutdown is initiated ...')
@@ -72,8 +72,8 @@ class FastWheelSpinning():
 if (__name__) == "__main__":
     continue_str = input("[WARNING] This script will spin both wheels at a high rate. "
                          + "Make sure the gears are deactivated. \n"
-                         + "          Do you want to continue [y/N]:  ")
+                         + "          Do you want to continue [y/N]:\n")
 
-    print("Starting the spinning. Use Ctrl-C to exit.")
     if continue_str=="y" or continue_str=="yes" or continue_str=="Y":
+        print("Starting the spinning. Use Ctrl-C to exit.")
         FastWheelSpinning().run()
