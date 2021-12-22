@@ -1,4 +1,4 @@
-#!/usr/bin/env ipython3
+#!/usr/bin/env python3
 """
 QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 """
