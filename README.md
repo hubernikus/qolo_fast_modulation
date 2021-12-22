@@ -33,7 +33,7 @@ A detailed description how to run the setup can be found here:
 https://github.com/DrDiegoPaez/qolo_ros/blob/master/Guides/MDS_sequence_experiments.md
 
 
-## Run this Repository (after setting up the evnironment
+## Run this Repository (after setting up the environment
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py

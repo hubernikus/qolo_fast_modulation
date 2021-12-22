@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env ipython3
 """
 QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 """
@@ -9,7 +9,6 @@ QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 import os
 import sys
 
-import logging
 import warnings
 import signal
 
@@ -43,15 +42,14 @@ from sensor_msgs.msg import LaserScan
 
 from vartools.states import ObjectPose
     
-    
 # from std_msgs.msg import MultiArrayLayout, MultiArrayDimension
 # from geometry_msgs.msg import Twist, TwistStamped, Pose2D
-
-
 try:
-    from fast_obstacle_avoidance.control_robot import ControlRobot
+    # Check if module is installed
+    from fast_obstacle_avoidance.control_robot import QoloRobot
+    # from fast_obstacle_avoidance.control_robot import QoloRobot
     
-except:
+except ModuleNotFoundError:
     # rospack = rospkg.RosPack()
     # Add obstacle avoidance without 'setting' up
     # directory_path = rospack.get_path('qolo_fast_modulation')
@@ -62,10 +60,11 @@ except:
     if not path_avoidance in sys.path:
         sys.path.append(path_avoidance)
 
-    from fast_obstacle_avoidance.control_robot import ControlRobot
+    from fast_obstacle_avoidance.control_robot import QoloRobot
+    # from fast_obstacle_avoidance.control_robot import QoloRobot
 
 # Custom libraries
-from fast_obstacle_avoidance.obstacle_avoider import FastObstacleAvoider
+from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
@@ -92,28 +91,17 @@ class ControllerQOLO:
         # Shutdown variable
         self.shutdown_finished = False
 
-    
-    def callback_laserscan_front(self, msg):
-        with lock:
-            self.msg_laserscan_front = laserscan_to_numpy(msg)
-
-    def callback_laserscan_rear(self, msg):
-        with lock:
-            self.msg_laserscan_rear = laserscan_to_numpy(
-                msg, delta_angle=self.delta_angle_rear,
-                delta_position=self.delta_position_rear
-            )
 
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
-        logging.warning('\nCaught ctrl-c by user. Shutdown is initiated ...')
+        print('\nCaught ctrl-c by user. Shutdown is initiated ...')
         self.shutdown()
         rospy.signal_shutdown('Caught ctrl-c by user. Shutdown is initiated ...')
 
     def shutdown(self):
         """ User defined shutdown command."""
 
-        logging.info("\nDoing shutdown.")
+        print("\nDoing shutdown.")
         if self.shutdown_finished:
             return
 
@@ -123,7 +111,7 @@ class ControllerQOLO:
             rospy.sleep(0.01) # ? why error...
 
         self.shutdown_finished = True
-        logging.info("\nShutdown successful.")
+        print("\nShutdown successful.")
         
     def controller_robot(self, vel_desired,
                          max_delta_angle=180./180*np.pi, p_angular=0.5, ):
@@ -185,6 +173,10 @@ class ControllerQOLO:
 
 
 class ControllerSharedLaserscan(ControllerQOLO):
+    def callback_laserscan(self, msg, topic_name):
+        with lock:
+            self.qolo.set_laserscan(msg, topic_name=topic_name)
+            
     def callback_remote(self, msg, tranform_to_global_frame=False):
         """ Get remote message and return velocity in global frame. """
         # Immediate republish
@@ -220,13 +212,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.remote_velocity_local = np.zeros(self.dimension)
 
         # QOLO State and geometry definition
-        self.qolo = ControlRobot(
-            control_points=np.array([[0.035, 0],
-                                     # [0.5, 0],
-                                     ]).T,
-            control_radiuses=np.array([0.5,
-                                       # 0.4,
-                                       ]),
+        self.qolo = QoloRobot(
             pose=ObjectPose(position=[0.0, 0.0], orientation=00*np.pi/180)
         )
 
@@ -239,51 +225,49 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.sub_remote = rospy.Subscriber('qolo/user_commands',
                                            Float32MultiArray, self.callback_remote)
 
-        self.sub_laserscan_rear = rospy.Subscriber('/rear_lidar/scan',
-                                              LaserScan, self.callback_laserscan_rear)
-
-        self.sub_laserscan_front = rospy.Subscriber('/front_lidar/scan',
-                                                   LaserScan, self.callback_laserscan_front)
+        topic_rear_scan = '/rear_lidar/scan'
+        self.sub_laserscan_rear = rospy.Subscriber(
+            topic_rear_scan, LaserScan, self.callback_laserscan, topic_rear_scan)
+            
+        topic_front_scan = '/front_lidar/scan'
+        self.sub_laserscan_front = rospy.Subscriber(
+            topic_front_scan, LaserScan, self.callback_laserscan, topic_front_scan)
+            
 
         ##### Publisher #####
         self.pub_qolo_command = rospy.Publisher(
             'qolo/remote_commands', Float32MultiArray, queue_size=1)
 
         # Define avoider object
-        self.fast_avoider = FastObstacleAvoider(robot=self.qolo)
+        self.fast_avoider = FastLidarAvoider(robot=self.qolo)
         
 
     def run(self):
-        while ((self.msg_laserscan_front is None
-                or self.msg_laserscan_rear is None)
+        while (len(self.qolo.laser_data) != len(self.qolo.laser_poses)
                and not rospy.is_shutdown()
                ):
-            logging.info("Awaiting first messages...")
-            
-            if self.msg_laserscan_front is None:
-                logging.info("Waiting for front_scan.")
+            print("Awaiting first messages...")
 
-            if self.msg_laserscan_rear is None:
-                logging.info("Waiting for rear_scan.")
+            if len(self.qolo.laser_data) != len(self.qolo.laser_poses):
+                print("Waiting for first scans.")
 
-            self.rate.sleep()
+                self.rate.sleep()
         
         self.it_count = 0
 
         # Starting main loop
-        logging.info("\nStarting looping")
+        print("\nStarting looping")
         while not rospy.is_shutdown():
             # Start with sleep for initialization & error in case of shutdown
             self.rate.sleep()
             
             with lock:
                 # TODO: check if laserscan has been updated
-                self.fast_avoider.update_laserscan(
-                    np.hstack((self.msg_laserscan_rear, self.msg_laserscan_front)))
+                if self.qolo.has_newscan:
+                    self.fast_avoider.update_laserscan(self.qolo.get_allscan())
 
-                modulated_velocity = self.fast_avoider.evaluate(self.remote_velocity_local)
+                modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
 
-                print()
                 print('mod vel', modulated_velocity)
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
                 print('lin= {},   ang= {}'.format(command_linear, command_angular))
@@ -293,16 +277,20 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
 
 if (__name__)=="__main__":
-    logging.basicConfig(
-        level=logging.INFO,
+    print("Trying.")
+    # logging.basicConfig(
+        # level=logging.INFO,
         # filename='example.log',
-        handlers=[logging.StreamHandler()]
-        )
+        # handlers=[logging.StreamHandler()]
+        # )
 
-    logging.info("Setting up controller.")
+    print("Setting up controller.")
     main_controller = ControllerSharedLaserscan()
 
-    logging.info("Starting controller.")
+    # if rospy.is_shutdown():
+        # raise Exception("Rospy is not down.")
+
+    print("Starting controller.")
     main_controller.run()
 
 
