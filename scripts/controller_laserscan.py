@@ -89,12 +89,11 @@ class ControllerQOLO:
         """ User defined handling of ctrl-c"""
         print('\nCaught ctrl-c by user. Shutdown is initiated ...')
         self.shutdown()
-        rospy.signal_shutdown('Caught ctrl-c by user. Shutdown is initiated ...')
 
     def shutdown(self):
         """ User defined shutdown command."""
 
-        print("\nDoing shutdown.")
+        print("\Initiating shutdown.")
         if self.shutdown_finished:
             return
 
@@ -104,6 +103,8 @@ class ControllerQOLO:
             rospy.sleep(0.01) # ? why error...
 
         self.shutdown_finished = True
+        
+        rospy.signal_shutdown('Caught ctrl-c by user. Shutdown is initiated ...')
         print("\nShutdown successful.")
         
     def controller_robot(self, vel_desired):
@@ -186,6 +187,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 # ])
             velocity = self.Jacobian @ np.array([command_linear, command_angular])
 
+            # print('time', msg_time)
             if tranform_to_global_frame:
                 breakpoint()
                 velocity = self.agent.transform_relative2global_dir(velocity)
@@ -238,12 +240,14 @@ class ControllerSharedLaserscan(ControllerQOLO):
             'qolo/remote_commands', Float32MultiArray, queue_size=1)
 
         # Define avoider object
-        self.fast_avoider = FastLidarAvoider(robot=self.qolo)
+        self.fast_avoider = FastLidarAvoider(
+            robot=self.qolo, evaluate_normal=False
+            )
 
         if DEBUG_FLAG:
             from debug_visualization_animator import DebugVisualizer
             self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo)
-        
+                
     def run(self):
         while (len(self.qolo.laser_data) != len(self.qolo.laser_poses)
                and not rospy.is_shutdown()
@@ -277,10 +281,16 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 self.publish_command(command_linear, command_angular)
 
                 if DEBUG_FLAG:
+                    if not self.visualizer.figure_is_open:
+                        self.shutdown()
+                        continue
+                    
                     self.visualizer.update_step(
                         ii=self.it_count,
                         initial_velocity=self.remote_velocity_local,
                         modulated_velocity=modulated_velocity)
+
+                    
                 
             self.it_count += 1
 
@@ -288,8 +298,13 @@ class ControllerSharedLaserscan(ControllerQOLO):
 if (__name__)=="__main__":
     print("Trying.")
     print("Setting up controller.")
-    
+
+    if DEBUG_FLAG:
+        print("[WARNING] Debugging mode is activated. "
+              + "This might significantly slow down the calculations.")
+        time.sleep(1)
     main_controller = ControllerSharedLaserscan()
+    
 
     print("Starting controller.")
     main_controller.run()
