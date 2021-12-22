@@ -34,10 +34,13 @@ https://github.com/DrDiegoPaez/qolo_ros/blob/master/Guides/MDS_sequence_experime
 
 
 ## Run this Repository (after setting up the environment
+The startup with the directories on QOLO
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
+
+The remote can be access from http://192.168.13.110:8080/
 
 
 # Error Bug / Issues

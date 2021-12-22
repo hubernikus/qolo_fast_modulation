@@ -96,6 +96,10 @@ python src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
 rosrun qolo_modulation qolo_modulation_ros_controller.py
 ```
 
+<!-- Alternative run: -->
+<!-- ``` bash -->
+<!-- ``` -->
+
 **10. Visualization- RUN LOCALLY**
 # Change to the local workspace with the qolo_ros package
 ``` bash

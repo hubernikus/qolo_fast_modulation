@@ -18,6 +18,7 @@ import time
 from timeit import default_timer as timer
 
 import numpy as np
+from numpy import linalg as LA
 
 from threading import Lock
 lock = Lock()
@@ -110,12 +111,15 @@ class ControllerQOLO:
         self.shutdown_finished = True
         print("\nShutdown successful.")
         
-    def controller_robot(self, vel_desired,
-                         max_delta_angle=180./180*np.pi, p_angular=0.5, ):
-                         
-        ''' Convert dynamical system into robot command. 
-            P-D controller in angular direction'''
-        
+    def controller_robot(self, vel_desired):
+        # Inverse kinematics with decomposed jacobian
+        command_linear, command_angular = LA.inv(self.Jacobian) @ vel_desired
+        return command_linear, command_angular
+    
+
+    def controller_robot_old(self, vel_desired):
+        """ Convert dynamical system into robot command. 
+            P-D controller in angular direction. """
         command_linear = np.linalg.norm(vel_desired)
 
         diff_angular_old = copy.deepcopy(self.diff_angular)
@@ -153,7 +157,7 @@ class ControllerQOLO:
         if np.abs(command_angular) > self.MAX_ANGULAR_SPEED:
             # warnings.warn("Max angular velocity exceeded.")
             # rospy.logwarn("Max angular velocity exceeded.")
-            command_linear = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
+            command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
         
         data_remote = Float32MultiArray()
         data_remote.layout.dim.append(MultiArrayDimension())
@@ -179,15 +183,19 @@ class ControllerSharedLaserscan(ControllerQOLO):
         # Immediate republish
         with lock:
             (msg_time, command_linear, command_angular) = msg.data
+            # print(f"Got linear={command_linear} | angular={command_angular}")
 
             if self.qolo.control_points.shape[1] > 1:
                 raise NotImplementedError()
+            
             ii = 0
-            velocity = np.array([
-                command_linear, command_angular*self.qolo.control_points[0, ii]
-                ])
+            # velocity = np.array([
+                # command_linear, command_angular*self.qolo.control_points[0, ii]
+                # ])
+            velocity = self.Jacobian @ np.array([command_linear, command_angular])
 
             if tranform_to_global_frame:
+                breakpoint()
                 velocity = self.agent.transform_relative2global_dir(velocity)
                 
             self.remote_velocity_local = velocity
@@ -212,6 +220,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.qolo = QoloRobot(
             pose=ObjectPose(position=[0.0, 0.0], orientation=00*np.pi/180)
         )
+
+        self.Jacobian = np.diag([1,  self.qolo.control_points[0, 0]])
 
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
@@ -264,9 +274,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     self.fast_avoider.update_laserscan(self.qolo.get_allscan())
 
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
-
-                print('mod vel', modulated_velocity)
+                # modulated_velocity = self.remote_velocity_local
+                
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
+                
                 print('lin= {},   ang= {}'.format(command_linear, command_angular))
                 self.publish_command(command_linear, command_angular)
                 
@@ -275,17 +286,9 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
 if (__name__)=="__main__":
     print("Trying.")
-    # logging.basicConfig(
-        # level=logging.INFO,
-        # filename='example.log',
-        # handlers=[logging.StreamHandler()]
-        # )
-
     print("Setting up controller.")
+    
     main_controller = ControllerSharedLaserscan()
-
-    # if rospy.is_shutdown():
-        # raise Exception("Rospy is not down.")
 
     print("Starting controller.")
     main_controller.run()

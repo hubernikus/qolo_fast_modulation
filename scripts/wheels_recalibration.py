@@ -70,12 +70,10 @@ class FastWheelSpinning():
 
 
 if (__name__) == "__main__":
-
     continue_str = input("[WARNING] This script will spin both wheels at a high rate. "
                          + "Make sure the gears are deactivated. \n"
                          + "          Do you want to continue [y/N]:  ")
 
     print("Starting the spinning. Use Ctrl-C to exit.")
-    if continue_str=="y" or continue_str=="yes":
+    if continue_str=="y" or continue_str=="yes" or continue_str=="Y":
         FastWheelSpinning().run()
-
