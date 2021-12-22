@@ -74,9 +74,6 @@ class ControllerQOLO:
     MAX_ANGULAR_SPEED = 0.3      # rad/s
     MAX_SPEED = 0.3    # m/s
 
-    delta_angle_rear = np.pi
-    delta_position_rear = np.array([0.75, 0.0])
-
     dimension = 2
     
     def __init__(self):
