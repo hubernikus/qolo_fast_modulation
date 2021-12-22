@@ -32,23 +32,18 @@ import rospy
 
 try:
     import rospkg
-    # import tf
 except:
     print("Could not import critical rospackages.")
     raise
 
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
-# from std_msgs.msg import String, Bool
 from sensor_msgs.msg import LaserScan
 
 from vartools.states import ObjectPose
     
-# from std_msgs.msg import MultiArrayLayout, MultiArrayDimension
-# from geometry_msgs.msg import Twist, TwistStamped, Pose2D
 try:
     # Check if module is installed
     from fast_obstacle_avoidance.control_robot import QoloRobot
-    # from fast_obstacle_avoidance.control_robot import QoloRobot
     
 except ModuleNotFoundError:
     # rospack = rospkg.RosPack()
@@ -62,12 +57,13 @@ except ModuleNotFoundError:
         sys.path.append(path_avoidance)
 
     from fast_obstacle_avoidance.control_robot import QoloRobot
-    # from fast_obstacle_avoidance.control_robot import QoloRobot
 
 # Custom libraries
 from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
+
+DEBUG_FLAG = True
 
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
@@ -88,7 +84,6 @@ class ControllerQOLO:
 
         # Shutdown variable
         self.shutdown_finished = False
-
 
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
@@ -115,7 +110,6 @@ class ControllerQOLO:
         # Inverse kinematics with decomposed jacobian
         command_linear, command_angular = LA.inv(self.Jacobian) @ vel_desired
         return command_linear, command_angular
-    
 
     def controller_robot_old(self, vel_desired):
         """ Convert dynamical system into robot command. 
@@ -151,25 +145,23 @@ class ControllerQOLO:
         """
         if np.abs(command_linear) > self.MAX_SPEED:
             # warnings.warn("Max linear velocity exceeded.")
-            # rospy.logwarn("Max linear velocity exceeded.")
+            # Rospy.Logwarn("Max linear velocity exceeded.")
             command_linear = np.copysign(self.MAX_SPEED, command_linear)
 
         if np.abs(command_angular) > self.MAX_ANGULAR_SPEED:
             # warnings.warn("Max angular velocity exceeded.")
             # rospy.logwarn("Max angular velocity exceeded.")
             command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
-        
-        data_remote = Float32MultiArray()
-        data_remote.layout.dim.append(MultiArrayDimension())
-        data_remote.layout.dim[0].label = 'Trajectory Commands [V, W]'
-        data_remote.layout.dim[0].size = 3
-        data_remote.data = [0]*3
 
         # Use 'time' since 'rospy.time' is a too large float
         msg_time = round(time.perf_counter(), 4)
-
+        
+        data_remote = Float32MultiArray()
+        data_remote.layout.dim.append(MultiArrayDimension())
+        data_remote.layout.dim[0].label = 'Trajectory Commands [Time, V, W]'
+        data_remote.layout.dim[0].size = 3
         data_remote.data = [msg_time, command_linear, command_angular]
-        # warnings.warn("Not publishing here though..")
+        
         self.pub_qolo_command.publish(data_remote)
 
 
@@ -247,8 +239,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         # Define avoider object
         self.fast_avoider = FastLidarAvoider(robot=self.qolo)
-        
 
+        if DEBUG_FLAG:
+            from debug_visualization_animator import DebugVisualizer
+            self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo)
+        
     def run(self):
         while (len(self.qolo.laser_data) != len(self.qolo.laser_poses)
                and not rospy.is_shutdown()
@@ -280,6 +275,12 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
                 print('lin= {},   ang= {}'.format(command_linear, command_angular))
                 self.publish_command(command_linear, command_angular)
+
+                if DEBUG_FLAG:
+                    self.visualizer.update_step(
+                        ii=self.it_count,
+                        initial_velocity=self.remote_velocity_local,
+                        modulated_velocity=modulated_velocity)
                 
             self.it_count += 1
 
