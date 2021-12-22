@@ -161,7 +161,7 @@ class ControllerQOLO:
         
         data_remote = Float32MultiArray()
         data_remote.layout.dim.append(MultiArrayDimension())
-        data_remote.layout.dim[0].label = 'Trajectory Commands [V, W]'
+        data_remote.layout.dim[0].label = 'FastMod Command [Time, V, W]'
         data_remote.layout.dim[0].size = 3
         data_remote.data = [0]*3
 
@@ -287,6 +287,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
 if (__name__)=="__main__":
     print("Trying.")
     print("Setting up controller.")
+
+    if DEBUG_FLAG:
+        print("[WARNING] Debug flag is on - which slows down the simulation significatnly.")
+        plt.pause(1.0)
     
     main_controller = ControllerSharedLaserscan()
 

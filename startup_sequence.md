@@ -8,9 +8,21 @@ Nvidia board 200
 
 # ============== Experiments for OA recordings - Including Collisions ========================== #
 
-#### Establish 4 connetcions to main UpBoard 110
-#### Establish 1 connetcion to Frontal Upboard 120
+#### Establish 3 connetcions to main UpBoard 110
+#### Establish 2 connetcion to Frontal Upboard 120
 #### Establish 2 connetcion to Frontal Upboard 200
+
+## Tmux
+Use Tmux to launch the different windows; basic commands:  
+
+Start a new session (one per computer) `tmux`  
+  
+Split window vertically: `Ctrl-b "`  
+Maximize/Minimize a sub-window `Ctrl-b z`  
+Move between windows: ``Ctrl-b [Arrow Key]`  
+
+Since it's fully terminal, you can not use your mouse. To move up the history type: `Ctrl-b [` (and `q` to cancel again)  
+Close a window: `Ctrl-d` or type `exit`  
 
 ### Check that all dates and times are the same on all PCs ###
 ``` bash
@@ -65,7 +77,7 @@ roslaunch realsense2_camera qolo_left_camera.launch
 
 **6. 110 terminal: Starting main Qolo Control Node**
 ``` bash
-sudo -s
+echo "qoloLASA2020" | sudo -S echo "" && sudo -s
 cd ~/catkin_ws/
 . devel/setup.bash
 rosrun qolo compliant_mds_shared_qolo.sh
@@ -94,6 +106,12 @@ cd ~/autonomy_ws/
 python src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
 # Not working at the moment because the workspace tries to run with python3
 rosrun qolo_modulation qolo_modulation_ros_controller.py
+```
+Alternatively run:
+
+``` bash
+source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
+python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
 <!-- Alternative run: -->
