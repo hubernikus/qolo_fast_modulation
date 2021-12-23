@@ -40,17 +40,24 @@ source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
+
 The remote can be access from http://192.168.13.110:8080/
 
+Visualize 
+``` bash
+
+```
 
 # Error Bug / Issues
--> check that all breaks are released (!)
-Release them by pressing at both extreme ends of the torso-force sensors simultaneously (!)
+-> check that all breaks are released (!), check the topic `qolo/emergency` (True -> break is activated)
+Release them by pressing at both extreme ends of the torso-force sensors simultaneously (the battery lights should flash when done succesfully)
+
 
 -> One wheel is not spinning
-Make the wheels spin freely (detach the wheels); send full velocity command to both wheels for a few seconds (e.g. use a script for this)
+ Make the wheels spin freely (detach the wheels); send full velocity command to both wheels for a few seconds (e.g. use a script for this)  
+[WARNING] make sure the gears are deactivated, otherwise a crash might occur(!)  
 ``` bash
-TODO
+python wheels_recalibration.py
 ```
 
 

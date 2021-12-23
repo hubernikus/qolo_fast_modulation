@@ -63,7 +63,8 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG = True
+DEBUG_FLAG_VISUALIZE = False
+DEBUG_FLAG_PUBLISH = True
 
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
@@ -181,11 +182,13 @@ class ControllerSharedLaserscan(ControllerQOLO):
             if self.qolo.control_points.shape[1] > 1:
                 raise NotImplementedError()
             
-            ii = 0
+            # ii = 0
             # velocity = np.array([
                 # command_linear, command_angular*self.qolo.control_points[0, ii]
                 # ])
-            velocity = self.Jacobian @ np.array([command_linear, command_angular])
+            velocity = self.RemoteJacobian @ np.array([command_linear, command_angular])
+            # print(f"linear {command_linear} --- angular = {command_angular}")
+            # print(f"velocity: {velocity}")
 
             # print('time', msg_time)
             if tranform_to_global_frame:
@@ -216,6 +219,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         )
 
         self.Jacobian = np.diag([1,  self.qolo.control_points[0, 0]])
+        # Increased influence of angular velocity
+        self.RemoteJacobian = np.diag([1, 0.15])
 
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
@@ -244,10 +249,13 @@ class ControllerSharedLaserscan(ControllerQOLO):
             robot=self.qolo, evaluate_normal=False
             )
 
-        if DEBUG_FLAG:
+        if DEBUG_FLAG_VISUALIZE:
             from debug_visualization_animator import DebugVisualizer
-            self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo,
-                                              publish_command=True)
+            self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo)
+            
+        if DEBUG_FLAG_PUBLISH:
+            from debug_publisher import DebugPublisher
+            self.debug_publisher = DebugPublisher(main_controller=self)
                 
     def run(self):
         while (len(self.qolo.laser_data) != len(self.qolo.laser_poses)
@@ -281,7 +289,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 print('lin= {},   ang= {}'.format(command_linear, command_angular))
                 self.publish_command(command_linear, command_angular)
 
-                if DEBUG_FLAG:
+                if DEBUG_FLAG_VISUALIZE:
                     if not self.visualizer.figure_is_open:
                         self.shutdown()
                         continue
@@ -290,9 +298,15 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         ii=self.it_count,
                         initial_velocity=self.remote_velocity_local,
                         modulated_velocity=modulated_velocity,
-                        command_linear=command_linear,
-                        command_angular=command_angular,
-                        msg_time=self.last_laserscan_time)
+                        )
+
+                if DEBUG_FLAG_PUBLISH:
+                    self.debug_publisher.update_step(
+                        initial_velocity=self.remote_velocity_local,
+                        modulated_velocity=modulated_velocity,
+                        msg_time=self.last_laserscan_time
+                        )
+                    
                 
             self.it_count += 1
 
@@ -301,16 +315,19 @@ if (__name__)=="__main__":
     print("Trying.")
     print("Setting up controller.")
 
-    if DEBUG_FLAG:
-        print("[WARNING] Debugging mode is activated. "
+    if DEBUG_FLAG_PUBLISH:
+        print("DEBUG publishing is active.")
+        
+    if DEBUG_FLAG_VISUALIZE:
+        print("[WARNING] Visual-debugging mode is activated. "
               + "This might significantly slow down the calculations.")
         time.sleep(1)
         
     main_controller = ControllerSharedLaserscan()
-    
 
     print("Starting controller.")
     main_controller.run()
 
 
     print("\nLet's call it a day and go home.\n")
+ 

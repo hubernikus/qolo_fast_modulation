@@ -56,8 +56,17 @@ roslaunch qolo rear_lidar-cloud.launch
 ``` bash
 cd ~/autonomy_ws/
 . devel/setup.bash
+rosrun rds_ros lidar2lrf.sh
+```
+
+to launch additionally RDS
+``` bash
+cd ~/autonomy_ws/
+. devel/setup.bash
 rosrun rds_ros rds_lidar2lrf.sh
 ```
+(launches 
+
 
 **4. 200: Localization from T265 camera**
 ``` bash
