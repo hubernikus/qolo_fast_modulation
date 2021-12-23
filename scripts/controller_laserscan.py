@@ -138,7 +138,6 @@ class ControllerQOLO:
             command_linear = 0
 
         return command_linear, command_angular
-
         
     def publish_command(self, command_linear, command_angular):
         """  Command to QOLO motor [Real Implementation]. 
@@ -169,6 +168,7 @@ class ControllerQOLO:
 class ControllerSharedLaserscan(ControllerQOLO):
     def callback_laserscan(self, msg, topic_name):
         with lock:
+            self.last_laserscan_time = msg.header.stamp
             self.qolo.set_laserscan(msg, topic_name=topic_name)
             
     def callback_remote(self, msg, tranform_to_global_frame=False):
@@ -246,7 +246,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         if DEBUG_FLAG:
             from debug_visualization_animator import DebugVisualizer
-            self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo)
+            self.visualizer = DebugVisualizer(main_controller=self, robot=self.qolo,
+                                              publish_command=True)
                 
     def run(self):
         while (len(self.qolo.laser_data) != len(self.qolo.laser_poses)
@@ -288,9 +289,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     self.visualizer.update_step(
                         ii=self.it_count,
                         initial_velocity=self.remote_velocity_local,
-                        modulated_velocity=modulated_velocity)
-
-                    
+                        modulated_velocity=modulated_velocity,
+                        command_linear=command_linear,
+                        command_angular=command_angular,
+                        msg_time=self.last_laserscan_time)
                 
             self.it_count += 1
 
