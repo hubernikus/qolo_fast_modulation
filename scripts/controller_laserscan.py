@@ -63,7 +63,7 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG = False
+DEBUG_FLAG = True
 
 class ControllerQOLO:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
@@ -93,7 +93,7 @@ class ControllerQOLO:
     def shutdown(self):
         """ User defined shutdown command."""
 
-        print("\Initiating shutdown.")
+        print("\nInitiating shutdown.")
         if self.shutdown_finished:
             return
 
