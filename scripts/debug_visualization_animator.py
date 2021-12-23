@@ -6,9 +6,6 @@ from numpy import linalg as LA
 
 import matplotlib.pyplot as plt
 
-import rospy 
-from geometry_msgs.msg import PoseStamped, TwistStamped
-
 from vartools.animator import Animator
 
 
@@ -17,10 +14,9 @@ class DebugVisualizer():
     def figure_is_open(self):
         return plt.fignum_exists(self.fig.number)
 
-    def __init__(self, main_controller, robot, 
+    def __init__(self, main_controller, robot,
                  x_lim=[-3, 4], y_lim=[-3, 3], array_size=1000,
                  dt_sleep=0.05,
-                 publish_command=False,
     ):
         plt.ion()
         
@@ -42,60 +38,13 @@ class DebugVisualizer():
 
         self.position_list = np.zeros((self.dimension, array_size))
 
-        self.publish_command = publish_command
-        if self.publish_command:
-
-            self.publisher_vel_init = rospy.Publisher(
-                'qolo/vel_init', TwistStamped, queue_size=1)
-
-            self.publisher_vel_mod = rospy.Publisher(
-                'qolo/vel_modul', TwistStamped, queue_size=1)
-
-    # def publish_twist_message(self, command_linear, command_angular):
-        # msg = TwistStamped()
-        # msg.header.stamp = rospy.Time.now()
-        # msg.twist.linear.x = command_linear
-        # msg.twist.angular.z = command_angular
-        # self.publisher_twist.publish(msg)
-
-    def publish_vel_init(self, velocity, msg_time=None):
-        msg = TwistStamped()
-        if msg_time is None:
-            msg.header.stamp = rospy.Time.now()
-        else:
-            msg.header.stamp = msg_time
-        msg.header.frame_id = "tf_qolo"
-
-        msg.twist.linear.x = velocity[0]
-        msg.twist.linear.y = velocity[1]
-
-        self.publisher_vel_init.publish(msg)
-
-    def publish_vel_mod(self, velocity, msg_time=None):
-        msg = TwistStamped()
-        if msg_time is None:
-            msg.header.stamp = rospy.Time.now()
-        else:
-            msg.header.stamp = msg_time
-        msg.header.frame_id = "tf_qolo"
-
-        msg.twist.linear.x = velocity[0]
-        msg.twist.linear.y = velocity[1]
-        
-        self.publisher_vel_mod.publish(msg)
-        
     def update_step(self, ii, initial_velocity, modulated_velocity,
                     command_linear=None, command_angular=None,
-                    msg_time=None,
                     arrow_scale=0.4
     ):
         """Update robot and position."""
         # Update position_list -> todo in the future for better evaluation.
 
-        if self.publish_command:
-            # self.publish_twist_message(command_linear, command_angular)
-            self.publish_vel_init(initial_velocity, msg_time=msg_time)
-            self.publish_vel_mod(modulated_velocity, msg_time=msg_time)
             
         self.ax.clear()
 
