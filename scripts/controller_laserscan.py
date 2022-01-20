@@ -85,6 +85,11 @@ class ControllerQOLO:
 
         # Shutdown variable
         self.shutdown_finished = False
+        
+        ##### Publisher #####
+        self.pub_qolo_command = rospy.Publisher(
+            'qolo/remote_commands', Float32MultiArray, queue_size=1)
+
 
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
@@ -240,9 +245,6 @@ class ControllerSharedLaserscan(ControllerQOLO):
             topic_front_scan, LaserScan, self.callback_laserscan, topic_front_scan)
             
 
-        ##### Publisher #####
-        self.pub_qolo_command = rospy.Publisher(
-            'qolo/remote_commands', Float32MultiArray, queue_size=1)
 
         # Define avoider object
         self.fast_avoider = FastLidarAvoider(
