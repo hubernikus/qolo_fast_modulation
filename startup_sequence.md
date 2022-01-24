@@ -59,7 +59,7 @@ cd ~/autonomy_ws/
 rosrun rds_ros lidar2lrf.sh
 ```
 
-to launch additionally RDS
+to launch additionally with RDS
 ``` bash
 cd ~/autonomy_ws/
 . devel/setup.bash
@@ -112,12 +112,12 @@ rosbag record /tf /tf_static /diagnostics /front_lidar/scan /front_lidar/scan_al
 ``` bash
 cd ~/autonomy_ws/
 . devel/setup.bash 
-python src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
+python3 src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
 # Not working at the moment because the workspace tries to run with python3
 rosrun qolo_modulation qolo_modulation_ros_controller.py
 ```
-Alternatively run:
 
+9.b) Alternatively run:
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
