@@ -4,3 +4,6 @@
 [submodule "scripts/various_tools"]
 	path = scripts/various_tools
 	url = https://github.com/hubernikus/various_tools
+[submodule "scripts/dynamic_obstacle_avoidance"]
+	path = scripts/dynamic_obstacle_avoidance
+	url = https://github.com/epfl-lasa/dynamic_obstacle_avoidance.git
