@@ -40,7 +40,8 @@ class DebugVisualizer():
 
     def update_step(self, ii, initial_velocity, modulated_velocity,
                     command_linear=None, command_angular=None,
-                    arrow_scale=0.4
+                    arrow_scale=0.4,
+                    ros_time=None
     ):
         """Update robot and position."""
         # Update position_list -> todo in the future for better evaluation.
@@ -106,10 +107,23 @@ class DebugVisualizer():
                 label="Modulated",
             )
 
+        if ros_time is not None:
+            # breakpoint()
+        # if True:
+            self.ax.text(
+                0.78, 0.95, f"{round(ros_time, 2)} s",
+                fontsize=12,
+                # fontsize=10,
+                # fontfamily='Georgia',
+                color='k',
+                ha='left', va='top',
+                transform=plt.gca().transAxes
+                )
+
+
         self.robot.plot2D(self.ax)
         self.ax.grid()
         
         plt.show()
         plt.pause(self.dt_sleep)
         # print("showing plot")
-

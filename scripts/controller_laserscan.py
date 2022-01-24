@@ -63,7 +63,7 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG_VISUALIZE = False
+DEBUG_FLAG_VISUALIZE = True
 DEBUG_FLAG_PUBLISH = True
 
 class ControllerQOLO:
@@ -124,6 +124,7 @@ class ControllerQOLO:
         command_linear = np.linalg.norm(vel_desired)
 
         diff_angular_old = copy.deepcopy(self.diff_angular)
+
         self.diff_angular = np.arctan2(vel_desired[1], vel_desired[0])
 
         if self.diff_angular > max_delta_angle:
@@ -202,7 +203,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
             self.remote_velocity_local = velocity
 
-    def __init__(self, loop_rate: float = 10):
+    def __init__(self, loop_rate: float = 10, use_tracker: bool = False):
         """ Setup the laserscan controller."""
         super().__init__()
         
@@ -246,8 +247,17 @@ class ControllerSharedLaserscan(ControllerQOLO):
             
 
 
-        # Define avoider object
-        self.fast_avoider = FastLidarAvoider(
+        if use_tracker:
+            import pedestrian_subscriber import RealPedestrianSubscriber
+            self.pedestrian_subscriber = RealPedestrinSubscriber()
+
+            from fast_obstacle_avoidance.obstacle_avoider import MixedEnvironmentAvoider
+            self.fast_avoider = MixedEnvironmentAvoider(
+                obstacle_enviroment=self.pedestrian_subscriber.obstacle_environment)
+            
+        else:
+            # Define avoider object
+            self.fast_avoider = FastLidarAvoider(
             robot=self.qolo, evaluate_normal=False
             )
 
@@ -282,7 +292,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 # TODO: check if laserscan has been updated
                 if self.qolo.has_newscan:
                     self.fast_avoider.update_laserscan(self.qolo.get_allscan())
-
+                    
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
                 # modulated_velocity = self.remote_velocity_local
                 
@@ -300,6 +310,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         ii=self.it_count,
                         initial_velocity=self.remote_velocity_local,
                         modulated_velocity=modulated_velocity,
+                        ros_time=rospy.get_time(),
                         )
 
                 if DEBUG_FLAG_PUBLISH:
