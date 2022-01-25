@@ -57,7 +57,7 @@ https://github.com/DrDiegoPaez/qolo_ros/blob/master/Guides/MDS_sequence_experime
 
 
 ## Run this Repository (after setting up the environment
-The startup with the directories on QOLO
+The startup on the QOLO computer `192.168.13.120`
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
