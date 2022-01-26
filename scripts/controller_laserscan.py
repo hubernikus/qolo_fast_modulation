@@ -63,7 +63,7 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG_VISUALIZE = True
+DEBUG_FLAG_VISUALIZE = False
 DEBUG_FLAG_PUBLISH = True
 
 class ControllerQOLO:
@@ -246,9 +246,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
             topic_front_scan, LaserScan, self.callback_laserscan, topic_front_scan)
             
 
-
         if use_tracker:
-            import pedestrian_subscriber import RealPedestrianSubscriber
+            from pedestrian_subscriber import RealPedestrianSubscriber
             self.pedestrian_subscriber = RealPedestrinSubscriber()
 
             from fast_obstacle_avoidance.obstacle_avoider import MixedEnvironmentAvoider
@@ -291,7 +290,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
             with lock:
                 # TODO: check if laserscan has been updated
                 if self.qolo.has_newscan:
-                    self.fast_avoider.update_laserscan(self.qolo.get_allscan())
+                    self.fast_avoider.update_reference_direction(self.qolo.get_allscan())
                     
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
                 # modulated_velocity = self.remote_velocity_local
