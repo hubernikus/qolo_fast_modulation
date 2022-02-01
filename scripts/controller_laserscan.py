@@ -62,11 +62,13 @@ except ModuleNotFoundError:
 from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
+from ._base_controller import ControllerQOLO
 
 DEBUG_FLAG_VISUALIZE = False
 DEBUG_FLAG_PUBLISH = True
 
-class ControllerQOLO:
+
+class ControllerQOLO_INITIAL:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
     # MAX_SPEED = 0.65    # m/s
     MAX_ANGULAR_SPEED = 0.3      # rad/s
@@ -224,9 +226,9 @@ class ControllerSharedLaserscan(ControllerQOLO):
             pose=ObjectPose(position=[0.0, 0.0], orientation=00*np.pi/180)
         )
 
-        self.Jacobian = np.diag([1,  self.qolo.control_points[0, 0]])
+        # self.Jacobian = np.diag([1,  self.qolo.control_points[0, 0]])
         # Increased influence of angular velocity
-        self.RemoteJacobian = np.diag([1, 0.15])
+        # self.RemoteJacobian = np.diag([1, 0.15])
 
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
@@ -318,8 +320,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         modulated_velocity=modulated_velocity,
                         msg_time=self.last_laserscan_time
                         )
-                    
-                
+
             self.it_count += 1
 
 
@@ -342,4 +343,3 @@ if (__name__)=="__main__":
 
 
     print("\nLet's call it a day and go home.\n")
- 
