@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 from vartools.animator import Animator
 
+from dynamic_obstacle_avoidance.visualization import plot_obstacles
+
 
 class DebugVisualizer():
     @property
@@ -58,13 +60,26 @@ class DebugVisualizer():
             zorder=-1,
         )
 
-        self.ax.set_xlim(self.x_lim)
-        self.ax.set_ylim(self.y_lim)
-        self.ax.set_aspect("equal")
+        # Plot obstacles (or at least limit environment)
+        if self.robot.obstacle_environment is None:
+            self.ax.set_xlim(self.x_lim)
+            self.ax.set_ylim(self.y_lim)
+            self.ax.set_aspect("equal")
+            
+        else:
+            plot_obstacles(
+                self.ax,
+                self.robot.obstacle_environment,
+                showLabel=False,
+                draw_reference=True,
+                velocity_arrow_factor=1.0,
+                # noTicks=True,
+                x_lim=self.x_lim,
+                y_lim=self.y_lim
+                )
 
         # We're evaluating everything in the local frame
         global_ctrl_point = self.robot.control_points[:, 0]
-
 
         reference = self.main_controller.fast_avoider.reference_direction
         ref_norm = LA.norm(reference)
@@ -80,7 +95,6 @@ class DebugVisualizer():
                 color="k",
                 label="Initial",
             )
-            
         
         if LA.norm(initial_velocity):
             init_norm = LA.norm(initial_velocity)
@@ -119,7 +133,6 @@ class DebugVisualizer():
                 ha='left', va='top',
                 transform=plt.gca().transAxes
                 )
-
 
         self.robot.plot2D(self.ax)
         self.ax.grid()

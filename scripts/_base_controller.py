@@ -28,8 +28,8 @@ import tf2_ros
 
 class ControllerQOLO:
     # Base variables
-    MAX_ANGULAR_SPEED = 0.3      # rad/s
-    MAX_SPEED = 0.3    # m/s
+    MAX_ANGULAR_SPEED = 1.0      # rad/s
+    MAX_SPEED = 1.0    # m/s
 
     dimension = 2
     

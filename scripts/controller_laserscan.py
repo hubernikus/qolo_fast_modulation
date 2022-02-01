@@ -28,14 +28,12 @@ lock = Lock()
 if (sys.version_info < (3, 0)):
     from itertools import izip as zip
     
-print("Run python {}".format(sys.version_info))
-
 import rospy
 
 try:
     import rospkg
 except:
-    print("Could not import critical rospackages.")
+    print("Cannot import critical rospackages.")
     raise
 
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
@@ -64,14 +62,14 @@ except ModuleNotFoundError:
 from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
-from ._base_controller import ControllerQOLO
+from _base_controller import ControllerQOLO
 
 
 class ControllerQOLO_INITIAL:
     # MAX_ANGULAR_SPEED = 0.6      # rad/s
     # MAX_SPEED = 0.65    # m/s
-    MAX_ANGULAR_SPEED = 0.3      # rad/s
-    MAX_SPEED = 0.3    # m/s
+    # MAX_ANGULAR_SPEED = 0.3      # rad/s
+    # MAX_SPEED = 0.3    # m/s
 
     dimension = 2
     
@@ -204,13 +202,17 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
             self.remote_velocity_local = velocity
 
-    def __init__(self, loop_rate: float = 200, use_tracker: bool = False):
+    def __init__(self, loop_rate: float = 200, use_tracker: bool = False,
+                 linear_command_scale: float = 1.0):
         """ Setup the laserscan controller."""
         super().__init__()
         
         self.loop_rate = loop_rate
         self.loop_dt = 1./self.loop_rate
         self.rate = rospy.Rate(self.loop_rate) # Hz
+
+        # Scale linear velocity command
+        self.linear_command_scale = linear_command_scale
 
         self.msg_pose = None
         self.msg_laserscan_front = None
@@ -246,14 +248,14 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.sub_laserscan_front = rospy.Subscriber(
             topic_front_scan, LaserScan, self.callback_laserscan, topic_front_scan)
             
-
         if use_tracker:
             from pedestrian_caller import RealPedestrianSubscriber
-            self.pedestrian_subscriber = RealPedestrinSubscriber()
+            self.pedestrian_subscriber = RealPedestrianSubscriber(
+                lock=lock, robot=self.qolo
+            )
 
             from fast_obstacle_avoidance.obstacle_avoider import MixedEnvironmentAvoider
-            self.fast_avoider = MixedEnvironmentAvoider(
-                obstacle_enviroment=self.pedestrian_subscriber.obstacle_environment)
+            self.fast_avoider = MixedEnvironmentAvoider(robot=self.qolo)
             print("[INFO] USING tracker.")
             
         else:
@@ -303,7 +305,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
                 # [WARNING] Command gets multiplied 
-                command_linear *= 1.5
+                self.command_linear *= self.linear_command_scale
 
                 if not self.it_count % print_int:
                     print('lin= {},   ang= {}'.format(command_linear, command_angular))
@@ -332,27 +334,31 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
 
 if (__name__)=="__main__":
-    print("Trying.")
-    print("Setting up controller.")
-
-    DEBUG_FLAG_VISUALIZE = False
-    DEBUG_FLAG_PUBLISH = False
-
-    if DEBUG_FLAG_PUBLISH:
-        print("DEBUG publishing is active.")
-        
-    if DEBUG_FLAG_VISUALIZE:
-        print("[WARNING] Visual-debugging mode is activated. "
-              + "This might significantly slow down the calculations.")
-        time.sleep(1)
-
-    # Parse arguments / Input arguments
+    # First Parse input arguments (don't pollute the `--help` messsage)
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--tracker', action="store_true", help="Use tracker for avoidance [default false]")
+    parser.add_argument('-t', '--tracker', action="store_true",
+                        help="Use tracker for avoidance [default false]")
+    parser.add_argument('-v', '--visualize', action="store_true",
+                        help="Visualize using matplotlib (!) only for debug puposes, "
+                        + "since this might significantly slow down the calculation.")
+    parser.add_argument('-p', '--publish', action="store_true",
+                        help="Additionally publish velocity commands, only for debug puposes.")
+    parser.add_argument('-s', '--scale', type=float, default=1.0,
+                        help="Scale velocity input by float command " 
+                        + "(a scale of 1.5 is adviced for the joystick).")
     args = parser.parse_args()
 
+    print("Trying.")
+    print("Run python {}".format(sys.version_info))
+
+    print("Setting up controller.")
+
+    # Set the flags (this could be transformed to class parameters)
+    DEBUG_FLAG_VISUALIZE = args.visualize
+    DEBUG_FLAG_PUBLISH = args.publish
+    
     main_controller = ControllerSharedLaserscan(
-        use_tracker=args.tracker)
+        use_tracker=args.tracker, linear_command_scale=args.scale)
 
     print("Starting controller.")
     main_controller.run()

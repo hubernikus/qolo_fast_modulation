@@ -62,7 +62,7 @@ cd ~/autonomy_ws/
 rosrun rds_ros lidar2lrf.sh
 ```
 
-to launch additionally with RDS
+**Alternatively** launch additionally with RDS
 ``` bash
 cd ~/autonomy_ws/
 . devel/setup.bash

@@ -63,6 +63,12 @@ source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
+## Arguments:  
+`-s [float]` or `-scale [float]`: Set the scaling of the linear velocity  
+`-t` or `--tracker `: Use the tracker information
+
+
+
 ## To Run the QOLO with the Belt Controller
 Change on the computer `110` in the `qolo` > `script` > `compliant_mds_shared_qolo.sh` the flags  
 `remote_mode` := `false`  
