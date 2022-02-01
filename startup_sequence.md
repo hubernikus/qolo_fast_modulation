@@ -18,8 +18,10 @@ Use Tmux to launch the different windows; basic commands:
 Start a new session (one per computer) `tmux`  
   
 Split window vertically: `Ctrl-b "`  
+Split window horizontally: `Ctrl-b "`  
 Maximize/Minimize a sub-window `Ctrl-b z`  
-Move between windows: ``Ctrl-b [Arrow Key]`  
+Move to specific window: ``Ctrl-b [Arrow Key]`  
+Toggle window: ``Ctrl-b o`  
 
 Since it's fully terminal, you can not use your mouse. To move up the history type: `Ctrl-b [` (and `q` to cancel again)  
 Close a window: `Ctrl-d` or type `exit`  
@@ -68,7 +70,6 @@ rosrun rds_ros rds_lidar2lrf.sh
 ```
 (launches 
 
-
 **4. 200: Localization from T265 camera**
 ``` bash
 rosclean purge -y
@@ -91,6 +92,10 @@ echo "qoloLASA2020" | sudo -S echo "" && sudo -s
 cd ~/catkin_ws/
 . devel/setup.bash
 rosrun qolo compliant_mds_shared_qolo.sh
+```
+run the controller with hands-free-flag `-H`:
+``` bash
+rosrun qolo compliant_mds_shared_qolo.sh -H
 ```
 
 **7. Nvidia-200 terminal:  Start People tracker**
