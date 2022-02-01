@@ -14,6 +14,9 @@ import rospy
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Pose2D
 
+# Needs python2 (...)
+import tf2_ros
+
 from vartools.dynamical_systems import DynamicalSystem, LinearSystem
 
 from ._base_controller import ControllerQOLO
@@ -22,6 +25,10 @@ from ._base_controller import ControllerQOLO
 class ControllerBasicDS(ControllerQOLO):
     def __init__(self, dynamical_system: DynamicalSystem, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
         
         self.dynamical_system = dynamical_system
 
@@ -69,6 +76,30 @@ class ControllerBasicDS(ControllerQOLO):
                 
             self.it_count += 1
 
+    def get_qolo_transform(self) -> int:
+        """ Returns 0 in case of no-error."""
+        try:
+            trans = self.tf_buffer.lookup_transform(
+                'world', 'tf_qolo', rospy.Time())
+
+            quat = [trans.transform.rotation.x,
+                    trans.transform.rotation.y,
+                    trans.transform.rotation.z,
+                    trans.transform.rotation.w
+                    ]
+            
+            theta = Rotation.from_quat(quat).as_euler('zyx')
+            self.qolo_pose.theta = theta[0]
+            
+            self.qolo_pose.x = trans.transform.translation.x
+            self.qolo_pose.y = trans.transform.translation.y
+
+            return 0
+            
+        except (tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException):
+            return 1
 
 def log_print(text, log_name="[qolo_controller] "):
     print(log_name + text)

@@ -23,8 +23,6 @@ import rospy
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 from geometry_msgs.msg import Pose2D
 
-import tf2_ros
-
 
 class ControllerQOLO:
     # Base variables
@@ -54,9 +52,6 @@ class ControllerQOLO:
         self.Jacobian = np.diag([1,  0.0625])
         # Increased influence of angular velocity
         self.RemoteJacobian = np.diag([1, 0.15])
-
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         ##### Publisher #####
         self.pub_qolo_command = rospy.Publisher(
@@ -112,32 +107,7 @@ class ControllerQOLO:
         data_remote.data = [msg_time, command_linear, command_angular]
         
         self.pub_qolo_command.publish(data_remote)
-
-    def get_qolo_transform(self) -> int:
-        """ Returns 0 in case of no-error."""
-        try:
-            trans = self.tf_buffer.lookup_transform(
-                'world', 'tf_qolo', rospy.Time())
-
-            quat = [trans.transform.rotation.x,
-                    trans.transform.rotation.y,
-                    trans.transform.rotation.z,
-                    trans.transform.rotation.w
-                    ]
-            
-            theta = Rotation.from_quat(quat).as_euler('zyx')
-            self.qolo_pose.theta = theta[0]
-            
-            self.qolo_pose.x = trans.transform.translation.x
-            self.qolo_pose.y = trans.transform.translation.y
-
-            return 0
-            
-        except (tf2_ros.LookupException,
-                tf2_ros.ConnectivityException,
-                tf2_ros.ExtrapolationException):
-            return 1
-
+    
     def callback_remote(self, msg, transform_to_global_frame=False):
         """ Get remote message and return velocity in global frame. """
         # Immediate republish
@@ -160,5 +130,5 @@ class ControllerQOLO:
         cos_val = np.cos(self.qolo_pose.theta)
 
         rot_matr = np.array([[cos_val, sin_val], [-sin_val, cos_val]])
-
+ 
         return rot_matr @ velocity
