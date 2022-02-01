@@ -17,6 +17,8 @@ import time
 
 from timeit import default_timer as timer
 
+import argparse
+
 import numpy as np
 from numpy import linalg as LA
 
@@ -63,14 +65,11 @@ from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
 from fast_obstacle_avoidance.utils import laserscan_to_numpy
 
 
-DEBUG_FLAG_VISUALIZE = False
-DEBUG_FLAG_PUBLISH = True
-
 class ControllerQOLO:
-    # MAX_ANGULAR_SPEED = 0.6      # rad/s
-    # MAX_SPEED = 0.65    # m/s
-    MAX_ANGULAR_SPEED = 0.3      # rad/s
-    MAX_SPEED = 0.3    # m/s
+    MAX_ANGULAR_SPEED = 0.5     # rad/s
+    MAX_SPEED = 1.5  # m/s
+    # MAX_ANGULAR_SPEED = 0.3      # rad/s
+    # MAX_SPEED = 0.3    # m/s
 
     dimension = 2
     
@@ -203,7 +202,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
             self.remote_velocity_local = velocity
 
-    def __init__(self, loop_rate: float = 10, use_tracker: bool = False):
+    def __init__(self, loop_rate: float = 200, use_tracker: bool = False):
         """ Setup the laserscan controller."""
         super().__init__()
         
@@ -247,18 +246,20 @@ class ControllerSharedLaserscan(ControllerQOLO):
             
 
         if use_tracker:
-            from pedestrian_subscriber import RealPedestrianSubscriber
+            from pedestrian_caller import RealPedestrianSubscriber
             self.pedestrian_subscriber = RealPedestrinSubscriber()
 
             from fast_obstacle_avoidance.obstacle_avoider import MixedEnvironmentAvoider
             self.fast_avoider = MixedEnvironmentAvoider(
                 obstacle_enviroment=self.pedestrian_subscriber.obstacle_environment)
+            print("[INFO] USING tracker.")
             
         else:
             # Define avoider object
             self.fast_avoider = FastLidarAvoider(
             robot=self.qolo, evaluate_normal=False
             )
+            print("[INFO] WITHOUT tracker.")
 
         if DEBUG_FLAG_VISUALIZE:
             from debug_visualization_animator import DebugVisualizer
@@ -281,6 +282,9 @@ class ControllerSharedLaserscan(ControllerQOLO):
         
         self.it_count = 0
 
+        print_freq = 5
+        print_int = int(self.loop_rate / print_freq)
+        
         # Starting main loop
         print("\nStarting looping")
         while not rospy.is_shutdown():
@@ -296,8 +300,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 # modulated_velocity = self.remote_velocity_local
                 
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
-                
-                print('lin= {},   ang= {}'.format(command_linear, command_angular))
+                command_linear *= 1.5
+
+                if not self.it_count % print_int:
+                    print('lin= {},   ang= {}'.format(command_linear, command_angular))
+                    
                 self.publish_command(command_linear, command_angular)
 
                 if DEBUG_FLAG_VISUALIZE:
@@ -318,7 +325,6 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         modulated_velocity=modulated_velocity,
                         msg_time=self.last_laserscan_time
                         )
-                    
                 
             self.it_count += 1
 
@@ -327,6 +333,9 @@ if (__name__)=="__main__":
     print("Trying.")
     print("Setting up controller.")
 
+    DEBUG_FLAG_VISUALIZE = False
+    DEBUG_FLAG_PUBLISH = False
+
     if DEBUG_FLAG_PUBLISH:
         print("DEBUG publishing is active.")
         
@@ -334,12 +343,16 @@ if (__name__)=="__main__":
         print("[WARNING] Visual-debugging mode is activated. "
               + "This might significantly slow down the calculations.")
         time.sleep(1)
-        
-    main_controller = ControllerSharedLaserscan()
+
+    # Parse arguments / Input arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--tracker', action="store_true", help="Use tracker for avoidance [default false]")
+    args = parser.parse_args()
+
+    main_controller = ControllerSharedLaserscan(
+        use_tracker=args.tracker)
 
     print("Starting controller.")
     main_controller.run()
 
-
     print("\nLet's call it a day and go home.\n")
- 

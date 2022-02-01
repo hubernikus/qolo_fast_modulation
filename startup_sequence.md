@@ -52,6 +52,7 @@ rosrun qolo rear_lidar2lrf.sh
 ``` bash
 roslaunch qolo rear_lidar-cloud.launch
 ```
+
 **3. 120 terminal: Launching Front Lidar and Low-level avoidance (RDS)**
 ``` bash
 cd ~/autonomy_ws/
@@ -110,6 +111,12 @@ rosbag record /tf /tf_static /diagnostics /front_lidar/scan /front_lidar/scan_al
 
 **9. 120 terminal: MDS Modulation with Underlying linear DS**
 ``` bash
+source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
+python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
+```
+
+9.b) Alternatively run:
+``` bash
 cd ~/autonomy_ws/
 . devel/setup.bash 
 python3 src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
@@ -117,11 +124,6 @@ python3 src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
 rosrun qolo_modulation qolo_modulation_ros_controller.py
 ```
 
-9.b) Alternatively run:
-``` bash
-source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
-python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
-```
 
 <!-- Alternative run: -->
 <!-- ``` bash -->
