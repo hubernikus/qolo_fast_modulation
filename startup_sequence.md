@@ -121,12 +121,10 @@ python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
 9.b) Alternatively run:
+eg. for the tracker with scaling do
 ``` bash
-cd ~/autonomy_ws/
-. devel/setup.bash 
-python3 src/qolo_modulation/scripts/qolo_modulation_ros_controller.py
-# Not working at the moment because the workspace tries to run with python3
-rosrun qolo_modulation qolo_modulation_ros_controller.py
+source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
+python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py -s 1.5 -t
 ```
 
 
