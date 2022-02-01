@@ -63,6 +63,10 @@ source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
+## To Run the QOLO with the Belt Controller
+Change on the computer `110` in the `qolo` > `script` > `compliant_mds_shared_qolo.sh` the flags  
+`remote_mode` := `false`  
+`mds_shared_mode` :=  `true`  
 
 The remote control can be access from http://192.168.13.110:8080/
 
