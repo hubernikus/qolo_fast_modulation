@@ -344,25 +344,24 @@ class FloatOfRange(float):
         value = float(value)
         if self.infimum is not None:
             if value <= self.infimum:
-                raise Exception(f"Value {value} is smaller than the  infimum of {self.infimum}")
+                raise Exception(f"Input {value} is smaller than the  infimum of {self.infimum}")
             
         if self.minimum is not None:
             if value < self.minimum:
-                raise Exception(f"Value {value} is smaller than the minimum of {self.minimum}")
+                raise Exception(f"Input {value} is smaller than the minimum of {self.minimum}")
 
         if self.supremum is not None:
             if value >= self.supremum:
-                raise Exception(f"Value {value} is larger than supremum of {self.supremum}")
+                raise Exception(f"Input {value} is larger than the supremum of {self.supremum}")
             
         if self.maximum is not None:
             if value > self.maximum:
-                raise Exception(f"Value {value} is bellow maximum of {self.maximum}")
+                raise Exception(f"Input {value} is larger than the maximum of {self.maximum}")
             
         return value
 
 
 if (__name__)=="__main__":
-    
     # First Parse input arguments (don't pollute the `--help` messsage)
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--tracker', action="store_true",
