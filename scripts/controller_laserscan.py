@@ -305,7 +305,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
                 # [WARNING] Command gets multiplied 
-                self.command_linear *= self.linear_command_scale
+                command_linear *= self.linear_command_scale
 
                 if not self.it_count % print_int:
                     print('lin= {},   ang= {}'.format(command_linear, command_angular))
