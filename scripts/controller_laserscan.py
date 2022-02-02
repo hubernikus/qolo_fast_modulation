@@ -332,8 +332,37 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         )
             self.it_count += 1
 
+class FloatOfRange(float):
+    """ Checks if the float value is in the given range and returns it."""
+    def __init__(self, minimum=None, maximum=None, infimum=None, supremum=None):
+        self.minimum = minimum
+        self.maximum = maximum
+        self.infimum = infimum
+        self.supremum = supremum
+
+    def __call__(self, value):
+        value = float(value)
+        if self.infimum is not None:
+            if value <= self.infimum:
+                raise Exception(f"Value {value} is smaller than the  infimum of {self.infimum}")
+            
+        if self.minimum is not None:
+            if value < self.minimum:
+                raise Exception(f"Value {value} is smaller than the minimum of {self.minimum}")
+
+        if self.supremum is not None:
+            if value >= self.supremum:
+                raise Exception(f"Value {value} is larger than supremum of {self.supremum}")
+            
+        if self.maximum is not None:
+            if value > self.maximum:
+                raise Exception(f"Value {value} is bellow maximum of {self.maximum}")
+            
+        return value
+
 
 if (__name__)=="__main__":
+    
     # First Parse input arguments (don't pollute the `--help` messsage)
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--tracker', action="store_true",
@@ -343,7 +372,10 @@ if (__name__)=="__main__":
                         + "since this might significantly slow down the calculation.")
     parser.add_argument('-p', '--publish', action="store_true",
                         help="Additionally publish velocity commands, only for debug puposes.")
-    parser.add_argument('-s', '--scale', type=float, default=1.0,
+    parser.add_argument('-s', '--scale',
+                        type=float, 
+                        # type=FloatOfRange(infimum=0, maximum=1.5),
+                        default=1.0,
                         help="Scale velocity input by float command " 
                         + "(a scale of 1.5 is adviced for the joystick).")
     args = parser.parse_args()
