@@ -344,7 +344,7 @@ class FloatOfRange(float):
         value = float(value)
         if self.infimum is not None:
             if value <= self.infimum:
-                raise Exception(f"Input {value} is smaller than the  infimum of {self.infimum}")
+                raise Exception(f"Input {value} is smaller than the infimum of {self.infimum}")
             
         if self.minimum is not None:
             if value < self.minimum:
@@ -372,8 +372,8 @@ if (__name__)=="__main__":
     parser.add_argument('-p', '--publish', action="store_true",
                         help="Additionally publish velocity commands, only for debug puposes.")
     parser.add_argument('-s', '--scale',
-                        type=float, 
-                        # type=FloatOfRange(infimum=0, maximum=1.5),
+                        # type=float, 
+                        type=FloatOfRange(infimum=0, maximum=1.5),
                         default=1.0,
                         help="Scale velocity input by float command " 
                         + "(a scale of 1.5 is adviced for the joystick).")
