@@ -26,8 +26,8 @@ from geometry_msgs.msg import Pose2D
 
 class ControllerQOLO:
     # Base variables
-    MAX_ANGULAR_SPEED = 1.0      # rad/s
-    MAX_SPEED = 1.0    # m/s
+    MAX_ANGULAR_SPEED = 0.7      # [rad/s]
+    MAX_SPEED = 0.7    # [m/s]
 
     dimension = 2
     

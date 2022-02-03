@@ -50,10 +50,6 @@ cd ~/catkin_ws/
 . devel/setup.bash
 rosrun qolo rear_lidar2lrf.sh
 ```
-**Alternatevely:**
-``` bash
-roslaunch qolo rear_lidar-cloud.launch
-```
 
 **3. 120 terminal: Launching Front Lidar and Low-level avoidance (RDS)**
 ``` bash
@@ -61,14 +57,6 @@ cd ~/autonomy_ws/
 . devel/setup.bash
 rosrun rds_ros lidar2lrf.sh
 ```
-
-**Alternatively** launch additionally with RDS
-``` bash
-cd ~/autonomy_ws/
-. devel/setup.bash
-rosrun rds_ros rds_lidar2lrf.sh
-```
-(launches 
 
 **4. 200: Localization from T265 camera**
 ``` bash
@@ -93,6 +81,7 @@ cd ~/catkin_ws/
 . devel/setup.bash
 rosrun qolo compliant_mds_shared_qolo.sh
 ```
+
 run the controller with hands-free-flag `-H`:
 ``` bash
 rosrun qolo compliant_mds_shared_qolo.sh -H
@@ -110,15 +99,6 @@ roslaunch rwth_crowdbot_launch qolo_onboard.launch trt:=true
 ``` bash
 cd /ssd_nvidia/data/irl_obstacles/
 rosbag record /tf /tf_static /diagnostics /front_lidar/scan /rear_lidar/scan /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample /rwth_tracker/tracked_persons /detected_persons/yolo
-
-```
-
-**8. 200: Rosbag Recording**
-``` bash
-cd /ssd_nvidia/data/irl_obstacles/
-rosbag record /tf /tf_static /diagnostics /front_lidar/scan /front_lidar/scan_all /front_lidar/velodyne_points /rear_lidar/velodyne_points /rear_lidar/scan /rear_lidar/scan_all /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rds_to_gui /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample
-
-/t265/fisheye1/camera_info /t265/fisheye1/image_raw /t265/fisheye2/camera_info /t265/fisheye2/image_raw
 ```
 
 **9. 120 terminal: MDS Modulation with Underlying linear DS**
@@ -146,4 +126,27 @@ cd ~/qolo_ws/
 . devel/setup.bash
 roslaunch qolo rviz.launch
 ```
+
+
+### Old launches
+**2. Alternatevely:**
+``` bash
+roslaunch qolo rear_lidar-cloud.launch
+```
+
+**3. Alternatively** launch additionally with RDS
+``` bash
+cd ~/autonomy_ws/
+. devel/setup.bash
+rosrun rds_ros rds_lidar2lrf.sh
+```
+
+**8. 200: Rosbag Recording**
+``` bash
+cd /ssd_nvidia/data/irl_obstacles/
+rosbag record /tf /tf_static /diagnostics /front_lidar/scan /front_lidar/scan_all /front_lidar/velodyne_points /rear_lidar/velodyne_points /rear_lidar/scan /rear_lidar/scan_all /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rds_to_gui /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample
+
+/t265/fisheye1/camera_info /t265/fisheye1/image_raw /t265/fisheye2/camera_info /t265/fisheye2/image_raw
+```
+
 ### Current ERROR DEGUB ####
