@@ -205,7 +205,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
     def __init__(self, loop_rate: float = 200, use_tracker: bool = False,
                  linear_command_scale: float = 1.0):
         """ Setup the laserscan controller."""
-        super().__init__()
+        # Don't publish when visualize is on (since this is only on laptop computer)
+        super().__init__(do_publish_command=not(DEBUG_FLAG_VISUALIZE))
         
         self.loop_rate = loop_rate
         self.loop_dt = 1./self.loop_rate
@@ -310,7 +311,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 if not self.it_count % print_int:
                     print('lin= {},   ang= {}'.format(command_linear, command_angular))
 
-                if not DEBUG_FLAG_VISUALIZE:
+                if self.do_publish_command:
                     # DO not publish when visialize - debug
                     self.publish_command(command_linear, command_angular)
 

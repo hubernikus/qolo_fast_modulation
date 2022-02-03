@@ -31,7 +31,7 @@ class ControllerQOLO:
 
     dimension = 2
     
-    def __init__(self, loop_rate: float = 100):
+    def __init__(self, loop_rate: float = 100, do_publish_command: bool = True):
         self.lock = Lock()
         
         rospy.init_node('qolo_controller')
@@ -54,8 +54,10 @@ class ControllerQOLO:
         self.RemoteJacobian = np.diag([1, 0.15])
 
         ##### Publisher #####
-        self.pub_qolo_command = rospy.Publisher(
-            'qolo/remote_commands', Float32MultiArray, queue_size=1)
+        self.do_publish_command = do_publish_command
+        if self.do_publish_command:
+            self.pub_qolo_command = rospy.Publisher(
+                'qolo/remote_commands', Float32MultiArray, queue_size=1)
 
     def control_c_handler(self, sig, frame):
         """ User defined handling of ctrl-c"""
