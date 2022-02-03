@@ -106,6 +106,13 @@ cd ~/tracker_ws
 roslaunch rwth_crowdbot_launch qolo_onboard.launch trt:=true
 ```
 
+**8. 200: Rosbag Recording with tracker & yolo**
+``` bash
+cd /ssd_nvidia/data/irl_obstacles/
+rosbag record /tf /tf_static /diagnostics /front_lidar/scan /rear_lidar/scan /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample /rwth_tracker/tracked_persons /detected_persons/yolo
+
+```
+
 **8. 200: Rosbag Recording**
 ``` bash
 cd /ssd_nvidia/data/irl_obstacles/
