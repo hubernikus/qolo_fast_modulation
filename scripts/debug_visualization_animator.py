@@ -10,6 +10,8 @@ from vartools.animator import Animator
 
 from dynamic_obstacle_avoidance.visualization import plot_obstacles
 
+from fast_obstacle_avoidance.obstacle_avoider import MixedEnvironmentAvoider
+
 
 class DebugVisualizer():
     @property
@@ -56,7 +58,8 @@ class DebugVisualizer():
             laserscan[0, :],
             laserscan[1, :],
             ".",
-            color=self.obstacle_color,
+            # color=self.obstacle_color,
+            color='k',
             zorder=-1,
         )
 
@@ -93,8 +96,39 @@ class DebugVisualizer():
                 width=0.03*ref_norm,
                 head_width=0.2*ref_norm,
                 color="k",
-                label="Initial",
+                label="Main reference",
             )
+            
+        if isinstance(self.main_controller.fast_avoider, MixedEnvironmentAvoider):
+            reference = self.main_controller.fast_avoider.obstacle_avoider.reference_direction
+            ref_norm = LA.norm(reference)
+            self.ax.arrow(
+                global_ctrl_point[0],
+                global_ctrl_point[1],
+                arrow_scale * reference[0],
+                arrow_scale * reference[1],
+                width=0.03*ref_norm,
+                head_width=0.2*ref_norm,
+                color="c",
+                label=f"Obs-Ref {np.round(ref_norm, 2)}",
+            )
+            # print('obs ref_norm', ref_norm)
+
+            reference = self.main_controller.fast_avoider.lidar_avoider.reference_direction
+            ref_norm = LA.norm(reference)
+            self.ax.arrow(
+                global_ctrl_point[0],
+                global_ctrl_point[1],
+                arrow_scale * reference[0],
+                arrow_scale * reference[1],
+                width=0.03*ref_norm,
+                head_width=0.2*ref_norm,
+                color="m",
+                label=f"Las.-Ref {np.round(ref_norm, 2)}",
+            )
+            # print('lid ref_norm', ref_norm)
+            # print()
+            
         
         if LA.norm(initial_velocity):
             init_norm = LA.norm(initial_velocity)
@@ -136,6 +170,7 @@ class DebugVisualizer():
 
         self.robot.plot2D(self.ax)
         self.ax.grid()
+        self.ax.legend(loc="upper right")
         
         plt.show()
         plt.pause(self.dt_sleep)

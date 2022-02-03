@@ -32,4 +32,5 @@ class RealPedestrianSubscriber:
     def callback_tracker(self, msg):
         ''' Tracker which updates obstacle list and assigns new reference points'''
         with self.lock:
+            print(f"Recieved numer of obstacles: {len(msg.tracks)}")
             self.robot.set_crowdtracker(msg)

@@ -309,8 +309,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
                 if not self.it_count % print_int:
                     print('lin= {},   ang= {}'.format(command_linear, command_angular))
-                    
-                self.publish_command(command_linear, command_angular)
+
+                if not DEBUG_FLAG_VISUALIZE:
+                    # DO not publish when visialize - debug
+                    self.publish_command(command_linear, command_angular)
 
                 if DEBUG_FLAG_VISUALIZE:
                     if not self.visualizer.figure_is_open:
@@ -368,7 +370,8 @@ if (__name__)=="__main__":
                         help="Use tracker for avoidance [default false]")
     parser.add_argument('-v', '--visualize', action="store_true",
                         help="Visualize using matplotlib (!) only for debug puposes, "
-                        + "since this might significantly slow down the calculation.")
+                        + "since this might significantly slow down the calculation no control command is send.."
+                        )
     parser.add_argument('-p', '--publish', action="store_true",
                         help="Additionally publish velocity commands, only for debug puposes.")
     parser.add_argument('-s', '--scale',
