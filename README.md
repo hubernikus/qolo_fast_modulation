@@ -23,9 +23,10 @@ make sure you also install the submodules (mainly `vartools`)
 
 Install the submodules:
 ``` bash
-cd scripts/vartools && python setup.py develop && ../..
-cd scripts/fast_obstacle_avoidance && python setup.py develop && ../..
+bash setup.sh
 ```
+Alternatively, investigate the submodules of the `setup.sh` script and use this.
+
 <!-- cd scripts/fast_obstacle_avoidance && python setup.py develop && ../.. -->
 
 ## Run simulation (RVIZ based)
@@ -47,7 +48,8 @@ python scripts/node_qolo_trafo.py
 Run the controller
 ``` bash
 source .venv/bin/activate
-python scripts/controller_basic_ds.py 
+cd scripts
+python controller_basic_ds.py 
 ```
 
 

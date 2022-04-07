@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""
-QOLO Pedestrian collision free navigation using modulation-algorithm and python.
-"""
+""" QOLO Pedestrian collision free navigation using modulation-algorithm
+and python."""
 # Author: Lukas Huber
 # Created: 2021-12-15
 # Email: lukas.huber@epfl.ch
 
 import numpy as np
-from numpy import linalg as LA
+# from numpy import linalg as LA
+
+from scipy.spatial.transform import Rotation
 
 import rospy
 
@@ -19,7 +20,7 @@ import tf2_ros
 
 from vartools.dynamical_systems import DynamicalSystem, LinearSystem
 
-from ._base_controller import ControllerQOLO
+from _base_controller import ControllerQOLO
 
 
 class ControllerBasicDS(ControllerQOLO):
@@ -29,7 +30,6 @@ class ControllerBasicDS(ControllerQOLO):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        
         self.dynamical_system = dynamical_system
 
         # Increased influence of angular velocity
@@ -71,7 +71,7 @@ class ControllerBasicDS(ControllerQOLO):
                 command_linear, command_angular = self.controller_robot(
                     desired_velocity)
 
-                print(desired_velocity)
+                print(f"Desired velocity vector: {desired_velocity}")
                 self.publish_command(command_linear, command_angular)
                 
             self.it_count += 1
@@ -108,7 +108,7 @@ def log_print(text, log_name="[qolo_controller] "):
 if (__name__)=="__main__":
     log_print("Startup...")
     dynamical_system = LinearSystem(
-        attractor_position=np.array([0, 2.0]),
+        attractor_position=np.array([0, 3.0]),
         maximum_velocity=0.8,
     )
     
