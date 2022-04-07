@@ -1,9 +1,9 @@
-[submodule "scripts/fast_obstacle_avoidance"]
-	path = scripts/fast_obstacle_avoidance
-	url = https://github.com/hubernikus/fast_obstacle_avoidance
-[submodule "scripts/various_tools"]
-	path = scripts/various_tools
-	url = https://github.com/hubernikus/various_tools
 [submodule "scripts/dynamic_obstacle_avoidance"]
-	path = scripts/dynamic_obstacle_avoidance
+	path = src/dynamic_obstacle_avoidance
 	url = https://github.com/epfl-lasa/dynamic_obstacle_avoidance.git
+[submodule "src/fast_obstacle_avoidance"]
+	path = src/fast_obstacle_avoidance
+	url = https://github.com/hubernikus/fast_obstacle_avoidance.git
+[submodule "src/various_tools"]
+	path = src/various_tools
+	url = https://github.com/hubernikus/various_tools.git
