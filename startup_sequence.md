@@ -104,7 +104,7 @@ rosbag record /tf /tf_static /diagnostics /front_lidar/scan /rear_lidar/scan /jo
 **9. 120 terminal: MDS Modulation with Underlying linear DS**
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
-python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
+python3 ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
 ```
 
 9.b) Alternatively run:

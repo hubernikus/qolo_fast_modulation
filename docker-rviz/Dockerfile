@@ -1,4 +1,5 @@
-FROM ros:noetic-ros-base
+# FROM ros:noetic-ros-base
+FROM ros:melodic-ros-base
 
 # INSTALL NECESSARY PACKAGES
 RUN apt update \
@@ -19,10 +20,23 @@ RUN useradd -d /home/ros -s /bin/bash -m ros -u 1000 -g 1000
 # ROS environment for QOLO
 # ENV ROS_MASTER_URI=http://128.179.186.206:11311
 
+RUN apt install -y qtbase5-dev qtdeclarative5-dev
+
 USER ros
 ENV HOME /home/ros
 
-WORKDIR /home/ros
+RUN mkdir -p ${HOME}/catkin_ws/src
+WORKDIR ${HOME}/catkin_ws
+COPY spencer_tracking_rviz_plugin src/spencer_tracking_rviz_plugin
+COPY messages src/messages
+
+# RUN /opt/ros/${ROS_DISTRO}/setup.sh
+
+
+# RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
+RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; catkin_make'
+
+WORKDIR ${HOME}
 CMD tmux
 
 # CMD rviz -d rviz/qolo_rviz_all.rviz 
