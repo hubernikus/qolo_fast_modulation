@@ -1,0 +1,77 @@
+FROM ros:noetic-ros-base
+# FROM ros:melodic-ros-base
+
+# INSTALL NECESSARY PACKAGES
+RUN apt update \
+	&& apt install -y \
+	tmux \
+	vim-python-jedi \
+	# gnupg2 curl lsb-core \ 
+	# libpng16-16 libjpeg-turbo8 libtiff5 \
+	# ros-${ROS_DISTRO}-rviz \
+	&& apt clean
+
+# RUN apt install -y qtbase5-dev qtdeclarative5-dev
+RUN apt-get install -y python3.9
+RUN apt-get install -y python3-pip
+# RUN apt-get install python3.9-venv
+
+# Files are currently just copied -> direct access from github could be done (?)
+# but this would require (stable) tags
+COPY src python
+
+WORKDIR ${HOME}/python/dynamic_obstacle_avoidance
+RUN python3.9 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
+
+WORKDIR ${HOME}/python/fast_obstacle_avoidance
+RUN python3.9 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
+
+WORKDIR ${HOME}/python/various_tools
+RUN python3.9 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
+
+# Resolve few conflicts
+RUN python3.9 -m pip install numpy --upgrade
+RUN python3.9 -m pip install --upgrade scikit-image
+
+# Create a user called ROS
+RUN groupadd -g 1000 ros
+RUN useradd -d /home/ros -s /bin/bash -m ros -u 1000 -g 1000
+
+USER ros
+ENV HOME /home/ros
+
+RUN mkdir -p ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
+
+WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation
+# COPY messages src/messages
+COPY requirements.txt requirements.txt
+COPY CMakeLists.txt CMakeLists.txt
+
+# Optional: source could be directly downloaded from git (but no local changes possible...)
+COPY src src
+
+# Local environment to allow for installation
+# RUN python3.9 -m venv env
+# RUN source ./env/bin/activate
+
+# COPY scripts scripts
+# Set ROS environment -> 
+# ENV ROS_MASTER_URI=http://128.179.186.206:11311
+
+# ROS environment for QOLO
+# ENV ROS_MASTER_URI=http://128.179.186.206:11311
+
+USER ros
+WORKDIR ${HOME}/catkin_ws
+# RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; catkin_make'
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
+
+# WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation
+WORKDIR ${HOME}
+CMD tmux
+
+# CMD rviz -d rviz/qolo_rviz_all.rviz 
+
