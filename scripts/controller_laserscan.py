@@ -287,9 +287,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
         
         self.it_count = 0
 
-        print_freq = 5
+        print_freq = 4
         print_int = int(self.loop_rate / print_freq)
-        
+
+        # t_sum = 0
+
         # Starting main loop
         print("\nStarting looping")
         while not rospy.is_shutdown():
@@ -298,11 +300,19 @@ class ControllerSharedLaserscan(ControllerQOLO):
             
             with lock:
                 # TODO: check if laserscan has been updated
+                # t_start = timer()
+                # if self.qolo.has_newscan and True:
                 if self.qolo.has_newscan:
                     self.fast_avoider.update_reference_direction(self.qolo.get_allscan())
-                    
+
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
-                # modulated_velocity = self.remote_velocity_local
+                # t_end = timer()
+
+                # t_sum += (t_end - t_start)
+                # print(f"Ellapsed time: {(t_end-t_start)*1000}ms")
+                # if not self.it_count % print_int:
+                    # print(f"Average ellapsed time: {t_sum/print_int*1000}ms")
+                    # t_sum = 0     # Reset value
                 
                 command_linear, command_angular = self.controller_robot(modulated_velocity)
                 # [WARNING] Command gets multiplied 
