@@ -1,0 +1,9 @@
+[submodule "src/various_tools"]
+	path = src/various_tools
+	url = https://github.com/hubernikus/various_tools
+[submodule "src/dynamic_obstacle_avoidance"]
+	path = src/dynamic_obstacle_avoidance
+	url = https://github.com/epfl-lasa/dynamic_obstacle_avoidance
+[submodule "src/fast_obstacle_avoidance"]
+	path = src/fast_obstacle_avoidance
+	url = https://github.com/hubernikus/fast_obstacle_avoidance
