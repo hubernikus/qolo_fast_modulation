@@ -71,7 +71,5 @@ RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 
 # WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation
 WORKDIR ${HOME}
+# COPY docker-rviz/qolo_env.sh ${HOME}/qolo_env.sh 
 CMD tmux
-
-# CMD rviz -d rviz/qolo_rviz_all.rviz 
-
