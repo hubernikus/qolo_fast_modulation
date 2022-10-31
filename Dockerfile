@@ -20,17 +20,17 @@ RUN apt-get install -y python3-pip
 # but this would require (stable) tags
 COPY src python
 
-WORKDIR ${HOME}/python/dynamic_obstacle_avoidance
+WORKDIR /python/various_tools
 RUN python3.9 -m pip install -e .
 RUN python3.9 -m pip install -r requirements.txt
 
-WORKDIR ${HOME}/python/fast_obstacle_avoidance
-RUN python3.9 -m pip install -e .
+WORKDIR /python/dynamic_obstacle_avoidance
 RUN python3.9 -m pip install -r requirements.txt
+RUN python3.9 -m pip install -e .
 
-WORKDIR ${HOME}/python/various_tools
-RUN python3.9 -m pip install -e .
+WORKDIR /python/fast_obstacle_avoidance
 RUN python3.9 -m pip install -r requirements.txt
+RUN python3.9 -m pip install -e .
 
 # Resolve few conflicts
 RUN python3.9 -m pip install numpy --upgrade
