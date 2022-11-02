@@ -69,7 +69,13 @@ WORKDIR ${HOME}/catkin_ws
 # RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; catkin_make'
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 
-# WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation
-WORKDIR ${HOME}
+# RUN export ROS_MASTER_URI=http://localhost:11311
+ENV ROS_MASTER_URI http://192.168.13.110:11311
+# WORKDIR ${HOME}
+WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
+
 # COPY docker-rviz/qolo_env.sh ${HOME}/qolo_env.sh 
-CMD tmux
+# CMD tmux
+
+# Run the main controller (basic
+# CMD python3.9 controller_laserscan.py
