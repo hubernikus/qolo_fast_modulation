@@ -38,8 +38,10 @@ except:
 
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Pose2D
 
 from vartools.states import ObjectPose
+from vartools.dynamical_systems import LinearSystem
 
 
 class AlgorithmType(Enum):
@@ -75,112 +77,6 @@ from fast_obstacle_avoidance.utils import laserscan_to_numpy
 from _base_controller import ControllerQOLO
 
 
-class ControllerQOLO_INITIAL:
-    # MAX_ANGULAR_SPEED = 0.6      # rad/s
-    # MAX_SPEED = 0.65    # m/s
-    # MAX_ANGULAR_SPEED = 0.3      # rad/s
-    # MAX_SPEED = 0.3    # m/s
-
-    dimension = 2
-
-    def __init__(self):
-        rospy.init_node("qolo_controller")
-
-        # Create ctrl-c handler
-        signal.signal(signal.SIGINT, self.control_c_handler)
-
-        # Angular velocity difference
-        self.diff_angular = 0
-
-        # Shutdown variable
-        self.shutdown_finished = False
-
-        ##### Publisher #####
-        self.pub_qolo_command = rospy.Publisher(
-            "qolo/remote_commands", Float32MultiArray, queue_size=1
-        )
-
-    def control_c_handler(self, sig, frame):
-        """User defined handling of ctrl-c"""
-        print("\nCaught ctrl-c by user. Shutdown is initiated ...")
-        self.shutdown()
-
-    def shutdown(self):
-        """User defined shutdown command."""
-
-        print("\nInitiating shutdown.")
-        if self.shutdown_finished:
-            return
-
-        # Published repeated zero velocity to ensure stand-still
-        for ii in range(10):
-            self.publish_command(0, 0)
-            rospy.sleep(0.01)  # ? why error...
-
-        self.shutdown_finished = True
-
-        rospy.signal_shutdown("Caught ctrl-c by user. Shutdown is initiated ...")
-        print("\nShutdown successful.")
-
-    def controller_robot(self, vel_desired):
-        # Inverse kinematics with decomposed jacobian
-        command_linear, command_angular = LA.inv(self.Jacobian) @ vel_desired
-        return command_linear, command_angular
-
-    def controller_robot_old(self, vel_desired):
-        """Convert dynamical system into robot command.
-        P-D controller in angular direction."""
-        command_linear = np.linalg.norm(vel_desired)
-
-        diff_angular_old = copy.deepcopy(self.diff_angular)
-
-        self.diff_angular = np.arctan2(vel_desired[1], vel_desired[0])
-
-        if self.diff_angular > max_delta_angle:
-            command_linear = -command_linear
-
-            if self.diff_angular > 0:
-                self.diff_angular = self.diff_angular - np.pi
-            else:
-                self.diff_angular = np.pi + self.diff_angular
-
-        # P-controller
-        p_angular = 1.0 / self.loop_dt * p_angular
-        command_angular = self.diff_angular * p_angular
-
-        if abs(command_angular) > (2 * self.MAX_ANGULAR_SPEED):
-            # Only rotate in this scenario
-            command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
-            command_linear = 0
-
-        return command_linear, command_angular
-
-    def publish_command(self, command_linear, command_angular):
-        """Command to QOLO motor [Real Implementation].
-        Includes MASTER CHECK if linear/angular velocity reached limit
-        """
-        if np.abs(command_linear) > self.MAX_SPEED:
-            # warnings.warn("Max linear velocity exceeded.")
-            # Rospy.Logwarn("Max linear velocity exceeded.")
-            command_linear = np.copysign(self.MAX_SPEED, command_linear)
-
-        if np.abs(command_angular) > self.MAX_ANGULAR_SPEED:
-            # warnings.warn("Max angular velocity exceeded.")
-            # rospy.logwarn("Max angular velocity exceeded.")
-            command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
-
-        # Use 'time' since 'rospy.time' is a too large float
-        msg_time = round(time.perf_counter(), 4)
-
-        data_remote = Float32MultiArray()
-        data_remote.layout.dim.append(MultiArrayDimension())
-        data_remote.layout.dim[0].label = "FastMod Command [Time, V, W]"
-        data_remote.layout.dim[0].size = 3
-        data_remote.data = [msg_time, command_linear, command_angular]
-
-        self.pub_qolo_command.publish(data_remote)
-
-
 class ControllerSharedLaserscan(ControllerQOLO):
     def callback_laserscan(self, msg, topic_name):
         with lock:
@@ -212,16 +108,26 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
             self.remote_velocity_local = velocity
 
+    def callback_qolo_pose2D(self, msg: Pose2D):
+        # TODO: this should update the real-agent (!)
+
+        if self.awaiting_pose:
+            self.awaiting_pose = False
+
+        self.qolo_pose.position = np.array([msg.x, msg.y])
+        self.qolo_pose.orientation = msg.theta
+
     def __init__(
         self,
         loop_rate: float = 200,
         use_tracker: bool = False,
         algotype: AlgorithmType = AlgorithmType.SAMPLED,
         linear_command_scale: float = 1.0,
+        relative_attractor_position: np.ndarray = None,
     ):
         """Setup the laserscan controller."""
         # Don't publish when visualize is on (since this is only on laptop computer)
-        super().__init__(do_publish_command=not (DEBUG_FLAG_VISUALIZE))
+        super().__init__(do_publish_command=not (DEBUG_FLAG_VISUALIZE), loop_rate=10)
 
         self.loop_rate = loop_rate
         self.loop_dt = 1.0 / self.loop_rate
@@ -249,13 +155,35 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
-        # self.sub_qolo_pose2D = rospy.Subscriber(
-        # '/qolo/pose2D', Pose2D, self.callback_qolo_pose2D)
 
-        # Jostick input
-        self.sub_remote = rospy.Subscriber(
-            "qolo/user_commands", Float32MultiArray, self.callback_remote
-        )
+        if relative_attractor_position is None:
+            # Jostick input
+            self.sub_remote = rospy.Subscriber(
+                "qolo/user_commands", Float32MultiArray, self.callback_remote
+            )
+            self.initial_dynamics = None
+
+        else:
+            self.awaiting_pose = True
+            self.qolo_pose = ObjectPose(np.zeros(2), 0)
+
+            self.sub_qolo_pose2D = rospy.Subscriber(
+                "/qolo/pose2D",
+                Pose2D,
+                self.callback_qolo_pose2D,
+            )
+
+            while self.awaiting_pose and not rospy.is_shutdown():
+                print("Waiting for first scans.")
+                self.rate.sleep()
+
+            self.initial_dynamics = LinearSystem(
+                attractor_position=self.qolo_pose.transform_position_from_relative(
+                    relative_attractor_position
+                ),
+                # maximum_velocity=1.0,
+                maximum_velocity=0.3,
+            )
 
         topic_rear_scan = "/rear_lidar/scan"
         self.sub_laserscan_rear = rospy.Subscriber(
@@ -284,9 +212,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         elif algotype == AlgorithmType.SAMPLED:
             # Define avoider object
             self.fast_avoider = FastLidarAvoider(robot=self.qolo, evaluate_normal=False)
-            # self.fast_avoider.weight_factor = (
-            #     2 * np.pi / main_environment.n_samples * 10
-            # )
+            self.fast_avoider.weight_factor = 2 * np.pi / 1000
+            # self.fast_avoider.weight_factor = 2 * np.pi / 1000
             self.fast_avoider.weight_power = 2.0
 
         elif algotype == AlgorithmType.VFH:
@@ -318,7 +245,6 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
             if len(self.qolo.laser_data) != len(self.qolo.laser_poses):
                 print("Waiting for first scans.")
-
                 self.rate.sleep()
 
         self.it_count = 0
@@ -336,6 +262,17 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
             with lock:
                 # TODO: check if laserscan has been updated
+                if self.initial_dynamics is not None:
+                    # Update velocity if an intial DS is given; otherwise take from remote
+                    self.remote_velocity_local = self.initial_dynamics.evaluate(
+                        self.qolo_pose.position
+                    )
+                    self.remote_velocity_local = (
+                        self.qolo_pose.transform_direction_to_relative(
+                            self.remote_velocity_local
+                        )
+                    )
+
                 # t_start = timer()
                 # if self.qolo.has_newscan and True:
                 if self.qolo.has_newscan:
@@ -344,6 +281,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     )
 
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
+
                 # t_end = timer()
 
                 # t_sum += (t_end - t_start)
@@ -363,7 +301,13 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
                 if self.do_publish_command:
                     # DO not publish when visialize - debug
+                    # print(
+                    #     f"[PRE-PUBLISH] {command_linear:.2f} - f{command_angular:.2f}"
+                    # )
                     self.publish_command(command_linear, command_angular)
+                    # breakpoint()
+
+                print("Qolor Pose", self.qolo.pose)
 
                 if DEBUG_FLAG_VISUALIZE:
                     if not self.visualizer.figure_is_open:
@@ -469,8 +413,9 @@ if (__name__) == "__main__":
     main_controller = ControllerSharedLaserscan(
         use_tracker=args.tracker,
         linear_command_scale=args.scale,
-        # algotype=AlgorithmType.SAMPLED,
-        algotype=AlgorithmType.VFH,
+        algotype=AlgorithmType.SAMPLED,
+        # algotype=AlgorithmType.VFH,
+        relative_attractor_position=np.array([4, -4]),
     )
 
     print("Starting controller.")

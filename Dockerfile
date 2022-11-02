@@ -72,7 +72,8 @@ RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 
 # RUN export ROS_MASTER_URI=http://localhost:11311
 ENV ROS_MASTER_URI http://192.168.13.110:11311
-ENV ROS_MASTER_URI http://192.168.13.110:11311
+ENV ROS_IP 192.168.13.120
+
 # WORKDIR ${HOME}
 WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
 
@@ -80,4 +81,4 @@ WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
 # CMD tmux
 
 # Run the main controller (basic
-# CMD python3.9 controller_laserscan.py
+CMD echo "python3.9 controller_laserscan.py"

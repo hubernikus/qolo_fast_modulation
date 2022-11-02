@@ -101,7 +101,8 @@ cd /ssd_nvidia/data/irl_obstacles/
 rosbag record /tf /tf_static /diagnostics /front_lidar/scan /rear_lidar/scan /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample /rwth_tracker/tracked_persons /detected_persons/yolo
 ```
 
-**9. 120 terminal: MDS Modulation with Underlying linear DS**
+
+**9.a) 120 terminal: MDS Modulation with Underlying linear DS**
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python3 ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
@@ -112,6 +113,14 @@ eg. for the tracker with scaling do
 ``` bash
 source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
 python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py -s 1.5 -t
+```
+
+9.c) Use docker to run it:
+eg. for the tracker with scaling do
+``` bash
+cd ~/autonomy_ws/src/qolo_fast_modulation
+bash docker-run.sh
+python3.9 controller_laserscan.py
 ```
 
 
