@@ -5,6 +5,7 @@ docker run \
 	   -it \
 	   -e DISPLAY=$DISPLAY \
 	   -h $HOSTNAME \
+	   --net host \
 	   -v /tmp/.X11-unix:/tmp/.X11-unix \
 	   -v $HOME/.Xauthority:/home/ros/.Xauthority \
 	   -v "$(pwd)"/scripts:/home/ros/catkin_ws/src/qolo_fast_modulation/scripts\

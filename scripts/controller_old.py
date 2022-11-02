@@ -6,34 +6,84 @@ QOLO Pedestrian collision free navigation using modulation-algorithm and python.
 # Created: 2021-12-15
 # Email: lukas.huber@epfl.ch
 
+import os
+import sys
+from enum import Enum, auto
+import warnings
 import signal
+import copy
+import time
 
 from timeit import default_timer as timer
-import time
+
+import argparse
 
 import numpy as np
 from numpy import linalg as LA
 
-from scipy.spatial.transform import Rotation
-
 from threading import Lock
+
+lock = Lock()
+
+if sys.version_info < (3, 0):
+    from itertools import izip as zip
 
 import rospy
 
+try:
+    import rospkg
+except:
+    print("Cannot import critical rospackages.")
+    raise
+
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
-from geometry_msgs.msg import Pose2D
+from sensor_msgs.msg import LaserScan
+
+from vartools.states import ObjectPose
 
 
-class ControllerQOLO:
-    # Base variables
-    MAX_ANGULAR_SPEED = 0.7  # [rad/s]
-    MAX_SPEED = 0.7  # [m/s]
+class AlgorithmType(Enum):
+    SAMPLED = 0
+    MIXED = 1
+    VFH = 2
+    OBSTACLE = auto()
+    MODULATED = auto()
+    CLUSTERSAMPLED = auto()
+
+
+try:
+    # Check if module is installed
+    from fast_obstacle_avoidance.control_robot import QoloRobot
+
+except ModuleNotFoundError:
+    # rospack = rospkg.RosPack()
+    # Add obstacle avoidance without 'setting' up
+    # directory_path = rospack.get_path('qolo_fast_modulation')
+    directory_path = "/home/qolo/autonomy_ws/src/qolo_fast_modulation"
+
+    path_avoidance = os.path.join(directory_path, "scripts", "fast_obstacle_avoidance")
+    if not path_avoidance in sys.path:
+        sys.path.append(path_avoidance)
+
+    from fast_obstacle_avoidance.control_robot import QoloRobot
+
+# Custom libraries
+from fast_obstacle_avoidance.obstacle_avoider import FastLidarAvoider
+from fast_obstacle_avoidance.comparison.vfh_avoider import VFH_Avoider
+from fast_obstacle_avoidance.utils import laserscan_to_numpy
+
+from _base_controller import ControllerQOLO
+
+
+class ControllerQOLO_INITIAL:
+    # MAX_ANGULAR_SPEED = 0.6      # rad/s
+    # MAX_SPEED = 0.65    # m/s
+    # MAX_ANGULAR_SPEED = 0.3      # rad/s
+    # MAX_SPEED = 0.3    # m/s
 
     dimension = 2
 
-    def __init__(self, loop_rate: float = 100, do_publish_command: bool = True):
-        self.lock = Lock()
-
+    def __init__(self):
         rospy.init_node("qolo_controller")
 
         # Create ctrl-c handler
@@ -45,20 +95,10 @@ class ControllerQOLO:
         # Shutdown variable
         self.shutdown_finished = False
 
-        self.loop_rate = loop_rate
-        self.loop_dt = 1.0 / self.loop_rate
-        self.rate = rospy.Rate(self.loop_rate)  # Hz
-
-        self.Jacobian = np.diag([1, 0.0625])
-        # Increased influence of angular velocity
-        self.RemoteJacobian = np.diag([1, 0.15])
-
         ##### Publisher #####
-        self.do_publish_command = do_publish_command
-        if self.do_publish_command:
-            self.pub_qolo_command = rospy.Publisher(
-                "qolo/remote_commands", Float32MultiArray, queue_size=1
-            )
+        self.pub_qolo_command = rospy.Publisher(
+            "qolo/remote_commands", Float32MultiArray, queue_size=1
+        )
 
     def control_c_handler(self, sig, frame):
         """User defined handling of ctrl-c"""
@@ -67,6 +107,7 @@ class ControllerQOLO:
 
     def shutdown(self):
         """User defined shutdown command."""
+
         print("\nInitiating shutdown.")
         if self.shutdown_finished:
             return
@@ -84,6 +125,34 @@ class ControllerQOLO:
     def controller_robot(self, vel_desired):
         # Inverse kinematics with decomposed jacobian
         command_linear, command_angular = LA.inv(self.Jacobian) @ vel_desired
+        return command_linear, command_angular
+
+    def controller_robot_old(self, vel_desired):
+        """Convert dynamical system into robot command.
+        P-D controller in angular direction."""
+        command_linear = np.linalg.norm(vel_desired)
+
+        diff_angular_old = copy.deepcopy(self.diff_angular)
+
+        self.diff_angular = np.arctan2(vel_desired[1], vel_desired[0])
+
+        if self.diff_angular > max_delta_angle:
+            command_linear = -command_linear
+
+            if self.diff_angular > 0:
+                self.diff_angular = self.diff_angular - np.pi
+            else:
+                self.diff_angular = np.pi + self.diff_angular
+
+        # P-controller
+        p_angular = 1.0 / self.loop_dt * p_angular
+        command_angular = self.diff_angular * p_angular
+
+        if abs(command_angular) > (2 * self.MAX_ANGULAR_SPEED):
+            # Only rotate in this scenario
+            command_angular = np.copysign(self.MAX_ANGULAR_SPEED, command_angular)
+            command_linear = 0
+
         return command_linear, command_angular
 
     def publish_command(self, command_linear, command_angular):
@@ -109,30 +178,5 @@ class ControllerQOLO:
         data_remote.layout.dim[0].size = 3
         data_remote.data = [msg_time, command_linear, command_angular]
 
-        # print(f"[PUBLISH] f{command_linear:.2f} - f{command_angular:.2f}")
-
+        breakpoint()
         self.pub_qolo_command.publish(data_remote)
-
-    def callback_remote(self, msg, transform_to_global_frame=False):
-        """Get remote message and return velocity in global frame."""
-        # Immediate republish
-        with self.lock:
-            (msg_time, command_linear, command_angular) = msg.data
-            if self.qolo.control_points.shape[1] > 1:
-                raise NotImplementedError()
-
-            velocity = self.RemoteJacobian @ np.array([command_linear, command_angular])
-
-            if transform_to_global_frame:
-                breakpoint()
-                velocity = self.agent.transform_relative2global_dir(velocity)
-
-            self.remote_velocity_local = velocity
-
-    def transform_velocity_from_world_to_robot(self, velocity):
-        sin_val = np.sin(self.qolo_pose.theta)
-        cos_val = np.cos(self.qolo_pose.theta)
-
-        rot_matr = np.array([[cos_val, sin_val], [-sin_val, cos_val]])
-
-        return rot_matr @ velocity
