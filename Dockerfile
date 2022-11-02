@@ -51,7 +51,8 @@ COPY requirements.txt requirements.txt
 COPY CMakeLists.txt CMakeLists.txt
 
 # Optional: source could be directly downloaded from git (but no local changes possible...)
-COPY src src
+# The source code is already copied to the python directory
+# COPY src src
 
 # Local environment to allow for installation
 # RUN python3.9 -m venv env
