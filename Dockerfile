@@ -72,6 +72,7 @@ RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 
 # RUN export ROS_MASTER_URI=http://localhost:11311
 ENV ROS_MASTER_URI http://192.168.13.110:11311
+ENV ROS_MASTER_URI http://192.168.13.110:11311
 # WORKDIR ${HOME}
 WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
 

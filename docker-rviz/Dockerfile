@@ -10,6 +10,9 @@ RUN apt update \
 	ros-${ROS_DISTRO}-rviz \
 	&& apt clean
 
+# How to install jsk-twist message ?!
+# RUN apt install -y --fix-missing ros-${ROS_DISTRO}-jsk-rviz-plugins
+
 # Create a user called ROS
 RUN groupadd -g 1000 ros
 RUN useradd -d /home/ros -s /bin/bash -m ros -u 1000 -g 1000
@@ -26,14 +29,18 @@ USER ros
 ENV HOME /home/ros
 
 RUN mkdir -p ${HOME}/catkin_ws/src
-WORKDIR ${HOME}/catkin_ws
-COPY spencer_tracking_rviz_plugin src/spencer_tracking_rviz_plugin
-COPY messages src/messages
 
+WORKDIR ${HOME}/catkin_ws/src
+COPY spencer_tracking_rviz_plugin spencer_tracking_rviz_plugin
+COPY messages messages
+
+# Additional messages (nice twist) -> does not work..
+# RUN git clone https://github.com/jsk-ros-pkg/jsk_visualization.git
+# RUN git clone https://github.com/jsk-ros-pkg/jsk_common_msgs.git
 # RUN /opt/ros/${ROS_DISTRO}/setup.sh
 
-
 # RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
+WORKDIR ${HOME}/catkin_ws
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; catkin_make'
 
 WORKDIR ${HOME}
