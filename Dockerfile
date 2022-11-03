@@ -16,7 +16,11 @@ RUN apt-get install -y python3.9
 RUN apt-get install -y python3-pip
 # RUN apt-get install python3.9-venv
 
+# TF in python
 RUN apt-get install -y ros-${ROS_DISTRO}-tf
+
+# Allow matplotlib-plotting
+RUN apt-get install -y python3-tk
 
 # Files are currently just copied -> direct access from github could be done (?)
 # but this would require (stable) tags
