@@ -29,6 +29,7 @@ if sys.version_info < (3, 0):
     from itertools import izip as zip
 
 import rospy
+import tf
 
 try:
     import rospkg
@@ -117,9 +118,43 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.qolo_pose.position = np.array([msg.x, msg.y])
         self.qolo_pose.orientation = msg.theta
 
+        self.msg_qolo_pose = msg
+
+    def update_pose_using_tf(self, orientation_init=0, position_init=0):
+        """Get pose of agent by looking up transform."""
+        try:
+            (agent_position, agent_orientation) = self.tf_listener.lookupTransform(
+                "/tf_qolo_world", "/tf_qolo", rospy.Time(0)
+            )
+
+            euler_angels_agent = tf.transformations.euler_from_quaternion(
+                agent_orientation
+            )
+        except:
+            print("Transform not found.")
+            # Connection not found error
+            return 404
+
+        self.qolo_pose.position = np.array([agent_position[0], agent_position[1]])
+        self.qolo_pose.orientation = euler_angels_agent[2]
+
+        # # Adapt with initial offset
+        # if orientation_init:
+        #     cos = np.cos(orientation_init)
+        #     sin = np.sin(orientation_init)
+        #     ROT_INIT = np.array([[cos, sin], [-sin, cos]])
+
+        #     self.agent.position = ROT_INIT.T.dot(self.agent_position) + position_init
+        #     # self.agent_position = self.agent_position
+
+        # self.agent.orientation = self.agent.orientation + orientation_init
+
+        # # Everything worked fine
+        # return 0
+
     def __init__(
         self,
-        loop_rate: float = 200,
+        loop_rate: float = 100,
         use_tracker: bool = False,
         algotype: AlgorithmType = AlgorithmType.SAMPLED,
         linear_command_scale: float = 1.0,
@@ -155,6 +190,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
+        self.tf_listener = tf.TransformListener()
 
         if relative_attractor_position is None:
             # Jostick input
@@ -166,23 +202,24 @@ class ControllerSharedLaserscan(ControllerQOLO):
         else:
             self.awaiting_pose = True
             self.qolo_pose = ObjectPose(np.zeros(2), 0)
+            self.update_pose_using_tf()
 
-            self.sub_qolo_pose2D = rospy.Subscriber(
-                "/qolo/pose2D",
-                Pose2D,
-                self.callback_qolo_pose2D,
-            )
+            # self.sub_qolo_pose2D = rospy.Subscriber(
+            #     "/qolo/pose2D",
+            #     Pose2D,
+            #     self.callback_qolo_pose2D,
+            # )
 
-            while self.awaiting_pose and not rospy.is_shutdown():
-                print("Waiting for first scans.")
-                self.rate.sleep()
+            # while self.awaiting_pose and not rospy.is_shutdown():
+            #     print("Waiting for first pose.")
+            #     self.rate.sleep()
 
             self.initial_dynamics = LinearSystem(
                 attractor_position=self.qolo_pose.transform_position_from_relative(
                     relative_attractor_position
                 ),
                 # maximum_velocity=1.0,
-                maximum_velocity=0.3,
+                maximum_velocity=0.1,
             )
 
         topic_rear_scan = "/rear_lidar/scan"
@@ -212,7 +249,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
         elif algotype == AlgorithmType.SAMPLED:
             # Define avoider object
             self.fast_avoider = FastLidarAvoider(robot=self.qolo, evaluate_normal=False)
-            self.fast_avoider.weight_factor = 2 * np.pi / 1000
+            self.fast_avoider.weight_factor = 2 * np.pi / 1000 * 10
             # self.fast_avoider.weight_factor = 2 * np.pi / 1000
             self.fast_avoider.weight_power = 2.0
 
@@ -252,7 +289,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
         print_freq = 4
         print_int = int(self.loop_rate / print_freq)
 
-        # t_sum = 0
+        t_sum = 0
 
         # Starting main loop
         print("\nStarting looping")
@@ -263,6 +300,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
             with lock:
                 # TODO: check if laserscan has been updated
                 if self.initial_dynamics is not None:
+                    self.update_pose_using_tf()
+
                     # Update velocity if an intial DS is given; otherwise take from remote
                     self.remote_velocity_local = self.initial_dynamics.evaluate(
                         self.qolo_pose.position
@@ -273,7 +312,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         )
                     )
 
-                # t_start = timer()
+                t_start = timer()
                 # if self.qolo.has_newscan and True:
                 if self.qolo.has_newscan:
                     self.fast_avoider.update_reference_direction(
@@ -282,13 +321,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
 
-                # t_end = timer()
+                t_end = timer()
+                t_sum += t_end - t_start
+                # print(f"Ellapsed time: {(t_end-t_start)*1000:.2f}ms")
 
-                # t_sum += (t_end - t_start)
-                # print(f"Ellapsed time: {(t_end-t_start)*1000}ms")
                 # if not self.it_count % print_int:
-                # print(f"Average ellapsed time: {t_sum/print_int*1000}ms")
-                # t_sum = 0     # Reset value
 
                 command_linear, command_angular = self.controller_robot(
                     modulated_velocity
@@ -297,7 +334,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 command_linear *= self.linear_command_scale
 
                 if not self.it_count % print_int:
-                    print("lin= {},   ang= {}".format(command_linear, command_angular))
+                    print(
+                        f"linear: {command_linear:.3f} | angular: {command_angular:.3f}"
+                    )
+                    print(f"Average ellapsed time: {t_sum/print_int*1000:.3f}ms")
+                    t_sum = 0  # Reset value
 
                 if self.do_publish_command:
                     # DO not publish when visialize - debug
@@ -305,9 +346,6 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     #     f"[PRE-PUBLISH] {command_linear:.2f} - f{command_angular:.2f}"
                     # )
                     self.publish_command(command_linear, command_angular)
-                    # breakpoint()
-
-                print("Qolor Pose", self.qolo.pose)
 
                 if DEBUG_FLAG_VISUALIZE:
                     if not self.visualizer.figure_is_open:
@@ -327,7 +365,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
                         modulated_velocity=modulated_velocity,
                         msg_time=self.last_laserscan_time,
                     )
-            self.it_count += 1
+
+                self.it_count += 1
 
 
 class FloatOfRange(float):
@@ -404,19 +443,18 @@ if (__name__) == "__main__":
     print("Trying.")
     print("Run python {}".format(sys.version_info))
 
-    print("Setting up controller.")
+    print("Setting up controller...")
 
     # Set the flags (this could be transformed to class parameters)
     DEBUG_FLAG_VISUALIZE = args.visualize
     DEBUG_FLAG_PUBLISH = args.publish
-    breakpoint()
 
     main_controller = ControllerSharedLaserscan(
         use_tracker=args.tracker,
         linear_command_scale=args.scale,
         algotype=AlgorithmType.SAMPLED,
         # algotype=AlgorithmType.VFH,
-        relative_attractor_position=np.array([4, -4]),
+        relative_attractor_position=np.array([2, -3]),
     )
 
     print("Starting controller.")

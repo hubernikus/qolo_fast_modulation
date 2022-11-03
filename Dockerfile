@@ -16,6 +16,8 @@ RUN apt-get install -y python3.9
 RUN apt-get install -y python3-pip
 # RUN apt-get install python3.9-venv
 
+RUN apt-get install -y ros-${ROS_DISTRO}-tf
+
 # Files are currently just copied -> direct access from github could be done (?)
 # but this would require (stable) tags
 COPY src python
@@ -81,4 +83,4 @@ WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
 # CMD tmux
 
 # Run the main controller (basic
-CMD echo "python3.9 controller_laserscan.py"
+# CMD echo "python3.9 controller_laserscan.py"

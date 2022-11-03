@@ -29,6 +29,29 @@ Alternatively, investigate the submodules of the `setup.sh` script and use this.
 
 <!-- cd scripts/fast_obstacle_avoidance && python setup.py develop && ../.. -->
 
+
+## Dockerfiles
+
+
+### Rviz-Visualization
+Run the docker in `docker-rviz' using:
+``` bash
+bash docker-run.sh
+```
+From this run the setup script and start rviz:
+``` bash
+./qolo_env.sh
+```
+Note that changes, that saving changes in the rviz file will be permanent (as it's shared between to the host.)
+
+
+### Main File
+
+
+#### Trouble Shooting
+
+
+
 ## Run simulation (RVIZ based)
 Launch visualization with qolo integrator
 ``` bash
