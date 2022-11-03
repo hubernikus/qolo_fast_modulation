@@ -80,7 +80,7 @@ class DebugPublisher:
             msg.header.stamp = rospy.Time.now()
         else:
             msg.header.stamp = msg_time
-        msg.header.frame_id = "tf_qolo"
+        msg.header.frame_id = "tf_qolo_world"
 
         msg = PointStamped()
         # attractor = self.main_controller.qolo.pose.transform_position_to_relative(

@@ -29,7 +29,9 @@ if sys.version_info < (3, 0):
     from itertools import izip as zip
 
 import rospy
-import tf
+
+# import tf
+import tf2_ros
 
 # TODO: this should be tf2...
 
@@ -126,19 +128,24 @@ class ControllerSharedLaserscan(ControllerQOLO):
         """Get pose of agent by looking up transform."""
         try:
             (agent_position, agent_orientation) = self.tf_listener.lookupTransform(
-                "/tf_qolo", "/tf_qolo_world", rospy.Time(0)
+                "/tf_qolo_world", "/tf_qolo", rospy.Time(0)
             )
 
             euler_angels_agent = tf.transformations.euler_from_quaternion(
                 agent_orientation
             )
+
         except:
             print("Transform not found.")
             # Connection not found error
             return 404
 
         self.qolo.pose.position = np.array([agent_position[0], agent_position[1]])
-        self.qolo.pose.orientation = euler_angels_agent[2]
+        # Somehow angle is opposite my estimate
+        self.qolo.pose.orientation = euler_angels_agent[2] * (-1)
+        # self.qolo.pose.orientation = euler_angels_agent[2]
+
+        self.awaiting_pose = False
 
         # # Adapt with initial offset
         # if orientation_init:
@@ -199,6 +206,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
         self.tf_listener = tf.TransformListener()
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(tfBuffer)
 
         if relative_attractor_position is None:
             # Jostick input
@@ -210,7 +219,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
         else:
             self.awaiting_pose = True
             self.qolo.pose = ObjectPose(np.zeros(2), 0)
-            self.update_pose_using_tf()
+
+            while self.awaiting_pose:
+                self.update_pose_using_tf()
+                print("Waiting for first pose.")
+                self.rate.sleep()
 
             # self.sub_qolo_pose2D = rospy.Subscriber(
             #     "/qolo/pose2D",
@@ -227,7 +240,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     relative_attractor_position
                 ),
                 # maximum_velocity=1.0,
-                maximum_velocity=0.3,
+                maximum_velocity=0.2,
             )
 
         topic_rear_scan = "/rear_lidar/scan"
@@ -464,8 +477,9 @@ if (__name__) == "__main__":
         linear_command_scale=args.scale,
         algotype=AlgorithmType.SAMPLED,
         # algotype=AlgorithmType.VFH,
-        # relative_attractor_position=np.array([2, -3]),
-        relative_attractor_position=np.array([2, 1]),
+        # relative_attractor_position=np.array([3, 0]),
+        relative_attractor_position=np.array([-2, -2]),
+        # relative_attractor_position=np.array([2, 1]),
     )
 
     print("Starting controller.")
