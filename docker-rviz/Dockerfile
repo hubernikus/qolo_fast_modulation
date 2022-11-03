@@ -12,6 +12,7 @@ RUN apt update \
 
 # How to install jsk-twist message ?!
 # RUN apt install -y --fix-missing ros-${ROS_DISTRO}-jsk-rviz-plugins
+# RUN apt install -y ros-${ROS_DISTRO}-jsk-rviz-plugins
 
 # Create a user called ROS
 RUN groupadd -g 1000 ros

@@ -409,6 +409,7 @@ if (__name__) == "__main__":
     # Set the flags (this could be transformed to class parameters)
     DEBUG_FLAG_VISUALIZE = args.visualize
     DEBUG_FLAG_PUBLISH = args.publish
+    breakpoint()
 
     main_controller = ControllerSharedLaserscan(
         use_tracker=args.tracker,
