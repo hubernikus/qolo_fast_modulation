@@ -11,6 +11,7 @@ docker run \
 	   -v "$(pwd)"/scripts:/home/ros/catkin_ws/src/qolo_fast_modulation/scripts\
 	   -v "$(pwd)"/src/fast_obstacle_avoidance/fast_obstacle_avoidance:/python/fast_obstacle_avoidance/fast_obstacle_avoidance\
 	   -v "$(pwd)"/src/fast_obstacle_avoidance/scripts:/python/fast_obstacle_avoidance/scripts\
+	   -v "$(pwd)"/src/various_tools/vartools:/python/various_tools/vartools\
 	   ros_qolo_fast_modulation
 
 # -v "$(pwd)"/src/various_tool:/python/fast_obstacle_avoidance/dynamic_obstacle_avoidance\

@@ -31,6 +31,8 @@ if sys.version_info < (3, 0):
 import rospy
 import tf
 
+# TODO: this should be tf2...
+
 try:
     import rospkg
 except:
@@ -115,8 +117,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         if self.awaiting_pose:
             self.awaiting_pose = False
 
-        self.qolo_pose.position = np.array([msg.x, msg.y])
-        self.qolo_pose.orientation = msg.theta
+        self.qolo.pose.position = np.array([msg.x, msg.y])
+        self.qolo.pose.orientation = msg.theta
 
         self.msg_qolo_pose = msg
 
@@ -124,7 +126,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
         """Get pose of agent by looking up transform."""
         try:
             (agent_position, agent_orientation) = self.tf_listener.lookupTransform(
-                "/tf_qolo_world", "/tf_qolo", rospy.Time(0)
+                "/tf_qolo", "/tf_qolo_world", rospy.Time(0)
             )
 
             euler_angels_agent = tf.transformations.euler_from_quaternion(
@@ -135,8 +137,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
             # Connection not found error
             return 404
 
-        self.qolo_pose.position = np.array([agent_position[0], agent_position[1]])
-        self.qolo_pose.orientation = euler_angels_agent[2]
+        self.qolo.pose.position = np.array([agent_position[0], agent_position[1]])
+        self.qolo.pose.orientation = euler_angels_agent[2]
 
         # # Adapt with initial offset
         # if orientation_init:
@@ -161,8 +163,14 @@ class ControllerSharedLaserscan(ControllerQOLO):
         relative_attractor_position: np.ndarray = None,
     ):
         """Setup the laserscan controller."""
+        if DEBUG_FLAG_VISUALIZE:
+            # The matplotlib will be too slow otherwise
+            loop_rate = 0.5
+
         # Don't publish when visualize is on (since this is only on laptop computer)
-        super().__init__(do_publish_command=not (DEBUG_FLAG_VISUALIZE), loop_rate=10)
+        super().__init__(
+            do_publish_command=not (DEBUG_FLAG_VISUALIZE), loop_rate=loop_rate
+        )
 
         self.loop_rate = loop_rate
         self.loop_dt = 1.0 / self.loop_rate
@@ -201,7 +209,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         else:
             self.awaiting_pose = True
-            self.qolo_pose = ObjectPose(np.zeros(2), 0)
+            self.qolo.pose = ObjectPose(np.zeros(2), 0)
             self.update_pose_using_tf()
 
             # self.sub_qolo_pose2D = rospy.Subscriber(
@@ -215,11 +223,11 @@ class ControllerSharedLaserscan(ControllerQOLO):
             #     self.rate.sleep()
 
             self.initial_dynamics = LinearSystem(
-                attractor_position=self.qolo_pose.transform_position_from_relative(
+                attractor_position=self.qolo.pose.transform_position_from_relative(
                     relative_attractor_position
                 ),
                 # maximum_velocity=1.0,
-                maximum_velocity=0.1,
+                maximum_velocity=0.3,
             )
 
         topic_rear_scan = "/rear_lidar/scan"
@@ -287,7 +295,7 @@ class ControllerSharedLaserscan(ControllerQOLO):
         self.it_count = 0
 
         print_freq = 4
-        print_int = int(self.loop_rate / print_freq)
+        print_int = max(int(self.loop_rate / print_freq), 1)
 
         t_sum = 0
 
@@ -304,10 +312,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
                     # Update velocity if an intial DS is given; otherwise take from remote
                     self.remote_velocity_local = self.initial_dynamics.evaluate(
-                        self.qolo_pose.position
+                        self.qolo.pose.position
                     )
                     self.remote_velocity_local = (
-                        self.qolo_pose.transform_direction_to_relative(
+                        self.qolo.pose.transform_direction_to_relative(
                             self.remote_velocity_local
                         )
                     )
@@ -325,18 +333,20 @@ class ControllerSharedLaserscan(ControllerQOLO):
                 t_sum += t_end - t_start
                 # print(f"Ellapsed time: {(t_end-t_start)*1000:.2f}ms")
 
-                # if not self.it_count % print_int:
-
                 command_linear, command_angular = self.controller_robot(
                     modulated_velocity
                 )
-                # [WARNING] Command gets multiplied
+
+                # [WARNING] Command gets multiplied -
+                # BUT this is useful for joystick vs chest-control (not same calibration)
                 command_linear *= self.linear_command_scale
 
                 if not self.it_count % print_int:
                     print(
                         f"linear: {command_linear:.3f} | angular: {command_angular:.3f}"
                     )
+                    print("Initial", self.remote_velocity_local)
+                    print("Modulated", modulated_velocity)
                     print(f"Average ellapsed time: {t_sum/print_int*1000:.3f}ms")
                     t_sum = 0  # Reset value
 
@@ -454,7 +464,8 @@ if (__name__) == "__main__":
         linear_command_scale=args.scale,
         algotype=AlgorithmType.SAMPLED,
         # algotype=AlgorithmType.VFH,
-        relative_attractor_position=np.array([2, -3]),
+        # relative_attractor_position=np.array([2, -3]),
+        relative_attractor_position=np.array([2, 1]),
     )
 
     print("Starting controller.")

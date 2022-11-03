@@ -183,7 +183,20 @@ class DebugVisualizer:
                 transform=plt.gca().transAxes,
             )
 
-        self.robot.plot2D(self.ax)
+        if (
+            hasattr(self.main_controller, "initial_dynamics")
+            and self.main_controller.initial_dynamics is not None
+        ):
+            attr_pos = self.main_controller.qolo.pose.transform_position_to_relative(
+                self.main_controller.initial_dynamics.attractor_position
+            )
+            self.ax.plot(
+                attr_pos[0],
+                attr_pos[1],
+                "r*",
+            )
+
+        self.robot.plot2D(self.ax, show_heading=True, in_relative_frame=True)
         self.ax.grid()
         self.ax.legend(loc="upper right")
 
