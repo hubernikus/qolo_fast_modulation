@@ -31,12 +31,14 @@ Close a window: `Ctrl-d` or type `exit`
 date
 ```
 
+
 ### If a PC is out of sync it might be that the internal NTP server went down ###
 	Manual setup:
 ``` bash
 sudo /etc/init.d/ntp restart
 sudo ntpd -q 192.168.13.110
 ```
+
 
 1. 110 terminal:
 ``` bash
@@ -66,14 +68,6 @@ cd /ssd_nvidia/autonomy_ws
 . devel/setup.bash 
 roslaunch realsense2_camera qolo_localization_t265.launch
 ```
-%% --> WAIT 15seconds  BEFORE THE NEXT CAMERA LAUNCH
-
-**5. 200: Yolo People Detection from D435 camera**
-``` bash
-cd /ssd_nvidia/autonomy_ws
-. devel/setup.bash 
-roslaunch realsense2_camera qolo_left_camera.launch
-```
 
 **6. 110 terminal: Starting main Qolo Control Node**
 ``` bash
@@ -83,12 +77,28 @@ cd ~/catkin_ws/
 rosrun qolo compliant_mds_shared_qolo.sh
 ```
 
-run the controller with hands-free-flag `-H`:
+Run the controller with hands-free-flag `-H`:
 ``` bash
 rosrun qolo compliant_mds_shared_qolo.sh -H
 ```
 
-**7. Nvidia-200 terminal:  Start People tracker**
+9.-z) Run the main controller (in a docker container)
+``` bash
+cd ~/autonomy_ws/src/qolo_fast_modulation
+bash docker-run.sh
+python3.9 controller_laserscan.py -p # with debug publishing option
+```
+
+## Run tracker + MDS
+%% --> WAIT 15seconds  BEFORE THE NEXT CAMERA LAUNCH
+**5. 200: Yolo People Detection from D435 camera**
+``` bash
+cd /ssd_nvidia/autonomy_ws
+. devel/setup.bash
+roslaunch realsense2_camera qolo_left_camera.launch
+```
+
+*200* Nvidia-200 terminal: Start People tracker
 ``` bash
 cd ~/tracker_ws
 . /ssd_nvidia/venv_sensing/bin/activate
@@ -96,46 +106,28 @@ cd ~/tracker_ws
 roslaunch rwth_crowdbot_launch qolo_onboard.launch trt:=true
 ```
 
-**8. 200: Rosbag Recording with tracker & yolo**
+*120* - Run MDS algorithm
 ``` bash
-cd /ssd_nvidia/data/irl_obstacles/
-rosbag record /tf /tf_static /diagnostics /front_lidar/scan /rear_lidar/scan /joint_states /qolo/compliance/svr /qolo/user_commands /qolo/emergency /qolo/odom /qolo/pose2D /qolo/remote_commands /qolo/twist /rokubi_node_front/ft_sensor_measurements /rosout /rosout_agg /t265/accel/imu_info /t265/accel/sample /t265/gyro/imu_info /t265/gyro/sample /t265/odom/sample /rwth_tracker/tracked_persons /detected_persons/yolo
+cd ~/autonomy_ws/
+. devel/setup.bash
+rosrun qolo_modulation qolo_modulation_ros_controller.py
 ```
 
-
-9.-z) Use docker to run it:
-eg. for the tracker with scaling do
+## Recording
+** 200 Light recording **
 ``` bash
-cd ~/autonomy_ws/src/qolo_fast_modulation
-bash docker-run.sh
-python3.9 controller_laserscan.py -p # with debug publishing option
-```
-
-**9.a) 120 terminal: MDS Modulation with Underlying linear DS**
-``` bash
-source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
-python3 ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py
-```
-
-9.b) Alternatively run:
-eg. for the tracker with scaling do
-``` bash
-source ~/autonomy_ws/src/qolo_fast_modulation/.venv/bin/activate
-python ~/autonomy_ws/src/qolo_fast_modulation/scripts/controller_laserscan.py -s 1.5 -t
+cd /ssd_nvidia/data/fast_avoidance
+rosbag record /chatter /tf /tf_static qolo/odom /qolo/pose2D /qolo/twist /qolo/remote_commands /qolo/user_commands /front_lidar/scan /rear_lidar/scan /rwth_tracker/pedestrian_array /rwth_tracker/tracked_persons
 ```
 
 
 
-<!-- Alternative run: -->
-<!-- ``` bash -->
-<!-- ``` -->
-
-**10. Visualization- RUN LOCALLY**
+# 10. Visualization- RUN LOCALLY**
 # Change to the local workspace with the qolo_ros package
 ``` bash
-cd ~/qolo_ws/
-. devel/setup.bash
-roslaunch qolo rviz.launch
+cd ~/autonomy_ws/src/qolo_fast_modulation/docker-rviz
+bash docker-run.sh
+./qolo_env
 ```
 
 
@@ -151,6 +143,9 @@ cd ~/autonomy_ws/
 . devel/setup.bash
 rosrun rds_ros rds_lidar2lrf.sh
 ```
+
+
+
 
 **8. 200: Rosbag Recording**
 ``` bash
