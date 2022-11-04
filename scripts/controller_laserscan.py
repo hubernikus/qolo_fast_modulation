@@ -30,8 +30,9 @@ if sys.version_info < (3, 0):
 
 import rospy
 
-# import tf
-import tf2_ros
+import tf
+
+# import tf2_ros
 
 # TODO: this should be tf2...
 
@@ -142,9 +143,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
 
         self.qolo.pose.position = np.array([agent_position[0], agent_position[1]])
         # Somehow angle is opposite my estimate
-        self.qolo.pose.orientation = euler_angels_agent[2] * (-1)
-        # self.qolo.pose.orientation = euler_angels_agent[2]
+        # self.qolo.pose.orientation = euler_angels_agent[2] * (-1)
+        self.qolo.pose.orientation = euler_angels_agent[2]
 
+        # print(f"Robot orientation: {self.qolo.pose.orientation / np.pi * 180:.1f}")
         self.awaiting_pose = False
 
         # # Adapt with initial offset
@@ -164,6 +166,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
     def __init__(
         self,
         loop_rate: float = 100,
+        maximum_velocity: float = 0.3,
+        sample_weight_factor: float = None,
         use_tracker: bool = False,
         algotype: AlgorithmType = AlgorithmType.SAMPLED,
         linear_command_scale: float = 1.0,
@@ -199,6 +203,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
             pose=ObjectPose(position=[0.0, 0.0], orientation=00 * np.pi / 180)
         )
 
+        self.maximum_velocity = maximum_velocity
+
         # self.Jacobian = np.diag([1,  self.qolo.control_points[0, 0]])
         # Increased influence of angular velocity
         # self.RemoteJacobian = np.diag([1, 0.15])
@@ -206,8 +212,8 @@ class ControllerSharedLaserscan(ControllerQOLO):
         ##### Subscriber #####
         # Since everthing is in the local frame. This is not needed
         self.tf_listener = tf.TransformListener()
-        self.tfBuffer = tf2_ros.Buffer()
-        self.listener = tf2_ros.TransformListener(tfBuffer)
+        # self.tfBuffer = tf2_ros.Buffer()
+        # self.listener = tf2_ros.TransformListener(tfBuffer)
 
         if relative_attractor_position is None:
             # Jostick input
@@ -217,6 +223,10 @@ class ControllerSharedLaserscan(ControllerQOLO):
             self.initial_dynamics = None
 
         else:
+            if True:
+                raise NotImplementedError(
+                    "Absolute position currently has navigation errors."
+                )
             self.awaiting_pose = True
             self.qolo.pose = ObjectPose(np.zeros(2), 0)
 
@@ -270,9 +280,18 @@ class ControllerSharedLaserscan(ControllerQOLO):
         elif algotype == AlgorithmType.SAMPLED:
             # Define avoider object
             self.fast_avoider = FastLidarAvoider(robot=self.qolo, evaluate_normal=False)
-            self.fast_avoider.weight_factor = 2 * np.pi / 1000 * 10
-            # self.fast_avoider.weight_factor = 2 * np.pi / 1000
+
             self.fast_avoider.weight_power = 2.0
+
+            # Scale for spare crowd
+            if sample_weight_factor is None:
+                # No scale for doorpasssing
+                # self.fast_avoider.weight_factor = 2 * np.pi / 1000 * 1
+                self.fast_avoider.weight_factor = 2 * np.pi / 1000 * 5
+            else:
+                self.fast_avoider.weight_factor = sample_weight_factor
+
+            print("sample weight", self.fast_avoider.weight_factor)
 
         elif algotype == AlgorithmType.VFH:
             # Define avoider object
@@ -341,6 +360,17 @@ class ControllerSharedLaserscan(ControllerQOLO):
                     )
 
                 modulated_velocity = self.fast_avoider.avoid(self.remote_velocity_local)
+
+                if self.maximum_velocity:
+                    if (
+                        vel_norm := LA.norm(modulated_velocity)
+                    ) > self.maximum_velocity:
+                        modulated_velocity = (
+                            modulated_velocity / vel_norm * self.maximum_velocity
+                        )
+
+                print("init vel", self.remote_velocity_local)
+                print("mod vel", modulated_velocity)
 
                 t_end = timer()
                 t_sum += t_end - t_start
@@ -473,13 +503,15 @@ if (__name__) == "__main__":
     DEBUG_FLAG_PUBLISH = args.publish
 
     main_controller = ControllerSharedLaserscan(
+        loop_rate=10,
+        maximum_velocity=0.3,
         use_tracker=args.tracker,
         linear_command_scale=args.scale,
         algotype=AlgorithmType.SAMPLED,
+        # sample_weight_factor=2 * np.pi / 1000 * 10,  # Weight for dynamic
+        # sample_weight_factor=2 * np.pi / 1000 * 1e-4,  # Almost none
+        sample_weight_factor=2 * np.pi / 1000 * 1,  # Weight for door-passing
         # algotype=AlgorithmType.VFH,
-        # relative_attractor_position=np.array([3, 0]),
-        relative_attractor_position=np.array([-2, -2]),
-        # relative_attractor_position=np.array([2, 1]),
     )
 
     print("Starting controller.")
