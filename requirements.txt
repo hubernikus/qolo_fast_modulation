@@ -7,3 +7,6 @@ rospy
 rospkg
 
 # pyrosenv
+
+# Install matplotlib for simpler visualization
+matplotlib

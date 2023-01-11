@@ -20,7 +20,10 @@ import datetime
 import numpy as np
 from math import pi
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    warnings.warn("Matplotlib not installed.")
 
 from threading import Lock
 
@@ -35,13 +38,13 @@ import rospy
 
 try:
     import rospkg
-except:
+except ModuleNotFoundError:
     # Define exception
     raise
 
 try:
     import tf
-except:
+except ModuleNotFoundError:
     # Define exception
     raise
 
@@ -51,11 +54,12 @@ from geometry_msgs.msg import Twist, TwistStamped, Pose2D
 
 # PoseWithCovariance
 # from frame_msgs.msg import TrackedPersons
-from qolo_modulation.msg import TrackedPersons
+# from qolo_modulation.msg import TrackedPersons
+from qolo_fast_modulation.msg import TrackedPersons
 
 try:
     import dynamic_obstacle_avoidance
-except:
+except ModuleNotFoundError:
     rospack = rospkg.RosPack()
     # rospack.list()
     # Add obstacle avoidance without 'setting' up
@@ -72,42 +76,27 @@ except:
 #     import pdb; pdb.set_trace()
 
 
-from dynamic_obstacle_avoidance.dynamical_system.dynamical_system_representation import (
-    get_linear_ds,
-    make_velocity_constant,
-    linear_ds_max_vel,
-    linearAttractor_const,
-)
+from vartools.dynamical_systems import LinearSystem
+from vartools.angle_math import angle_difference_directional
 
-from dynamic_obstacle_avoidance.obstacle_avoidance.gradient_container import (
-    GradientContainer,
-)
-from dynamic_obstacle_avoidance.obstacle_avoidance.human_ellipse import (
-    TrackedPedestrian,
-)
-from dynamic_obstacle_avoidance.obstacle_avoidance.obstacle import Obstacle
-from dynamic_obstacle_avoidance.obstacle_avoidance.ellipse_obstacles import Ellipse
-from dynamic_obstacle_avoidance.obstacle_avoidance.obstacle_polygon import Polygon
-from dynamic_obstacle_avoidance.obstacle_avoidance.linear_modulations import (
-    obs_avoidance_interpolation_moving,
-)
-from dynamic_obstacle_avoidance.obstacle_avoidance.angle_math import (
-    angle_difference_directional,
-)
+# from dynamic_obstacle_avoidance.dynamical_system.dynamical_system_representation import (
+#     linear_ds_max_vel,
+# )
 
-from dynamic_obstacle_avoidance.obstacle_avoidance.crowd_learning_container import (
+from dynamic_obstacle_avoidance.containers import GradientContainer
+from dynamic_obstacle_avoidance.obstacles import Obstacle, Ellipse, Polygon
+from dynamic_obstacle_avoidance.obstacles.human_ellipse import TrackedPedestrian
+from dynamic_obstacle_avoidance.avoidance import obs_avoidance_interpolation_moving
+
+from dynamic_obstacle_avoidance.containers.crowd_learning_container import (
     CrowdLearningContainer,
     CrowdCircleContainer,
 )
+from dynamic_obstacle_avoidance.agents.agent_qolo import AgentQOLO
 
-from dynamic_obstacle_avoidance.obstacle_avoidance.agent_qolo import AgentQOLO
-
+from dynamic_obstacle_avoidance.metric_evaluation import MetricEvaluator
 from dynamic_obstacle_avoidance.visualization.vector_field_visualization import (
     Simulation_vectorFields,
-)
-
-from dynamic_obstacle_avoidance.obstacle_avoidance.metric_evaluation import (
-    MetricEvaluator,
 )
 
 # path_crowdsim = os.path.join("home", "crowdbot", "CrowdBot_simulator", "CrowdBotUnity", "catkin_crowdbot", "sim", "src", "crowdbotsim", "msg")
@@ -118,7 +107,7 @@ from dynamic_obstacle_avoidance.obstacle_avoidance.metric_evaluation import (
 # Set simulation
 FLAG_DETECTOR_STATIC = True
 if FLAG_DETECTOR_STATIC:
-    from qolo_modulation.msg import DetectedPersons
+    from qolo_fast_modulation.msg import DetectedPersons
 
 DEBUG_FLAG = False
 LOG_ENVIORNMENT = False
@@ -305,9 +294,12 @@ class ObstacleAvoidanceQOLO(object):
         if GET_VELOCITY_FROM_JOYSTICK:
             self.remote_velocity = np.zeros(2)
 
+        print("Initialization successful.")
+
     def run(self, reset_relative_attractor=True):
         """Main ROS loop with"""
         print("control point", self.agent.control_point_local)
+
         while (self.awaiting_pose) and not rospy.is_shutdown():
             print("Awaiting first messages...")
             if self.awaiting_pose:
@@ -402,11 +394,17 @@ class ObstacleAvoidanceQOLO(object):
                 linear_ds = self.remote_velocity
 
             else:
-                linear_ds = linear_ds_max_vel(
-                    evaluation_position,
-                    attractor=self.projected_attractor,
-                    vel_max=MAX_SPEED,
+                self.initial_dynamics = LinearSystem(
+                    attractor_position=self.projected_attractor,
+                    # maximum_velocity=1.0,
+                    maximum_velocity=MAX_SPEED,
+                    # evaluation_position,
                 )
+                # linear_ds = linear_ds_max_vel(
+                #     evaluation_position,
+                #     attractor=self.projected_attractor,
+                #     vel_max=MAX_SPEED,
+                # )
 
             time_start = time.time()
             # modulated_ds = obs_avoidance_interpolation_moving(self.agent.position, linear_ds, self.obstacle_list, tangent_eigenvalue_isometric=False, repulsive_obstacle=False)
@@ -1217,11 +1215,13 @@ if (__name__) == "__main__":
 
     # obstacle_list = []
 
-    import virtual_environment
+    # import virtual_environment
 
-    obstacle_list = virtual_environment.get_static_pedestrian(
-        robot_margin=ROBOT_MARGIN, center_position=np.array([2.0, 0.1])
-    )
+    # obstacle_list = virtual_environment.get_static_pedestrian(
+    #     robot_margin=ROBOT_MARGIN, center_position=np.array([2.0, 0.1])
+    # )
+
+    obstacle_list = GradientContainer()
 
     try:
         ObstacleAvoidanceController = ObstacleAvoidanceQOLO(

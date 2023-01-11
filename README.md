@@ -117,3 +117,10 @@ Release them by pressing at both extreme ends of the torso-force sensors simulta
 python wheels_recalibration.py
 ```
 
+You forgot to add the submodules, add:
+``` bash
+git submodule update --init --recursive
+```
+
+
+

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(qolo_fastmod)
+project(qolo_fast_modulation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,11 +8,11 @@ project(qolo_fastmod)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
+  # roscpp
   rospy
   std_msgs
-  # geometry_msgs
-  # message_generation
+  geometry_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -47,6 +47,27 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .msg/.srv/.action file to be processed
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+
+## Generate messages in the 'msg' folder
+add_message_files(
+  FILES
+#   Message1.msg
+#   Message2.msg
+  TwistArrayStamped.msg
+  Agent.msg
+  CrowdStamped.msg
+  DetectedPerson.msg
+  DetectedPersons.msg
+  TrackedPerson.msg
+  TrackedPersons.msg
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
@@ -108,7 +129,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES qolo_fastmod
- CATKIN_DEPENDS roscpp rospy std_msgs
+ # CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS message_runtime
  # CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
