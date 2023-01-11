@@ -5,7 +5,7 @@ FROM ros:noetic-ros-base
 RUN apt update \
 	&& apt install -y \
 	tmux \	
-vim-python-jedi \
+	vim-python-jedi \
 	# gnupg2 curl lsb-core \ 
 	# libpng16-16 libjpeg-turbo8 libtiff5 \
 	# ros-${ROS_DISTRO}-rviz \
@@ -79,29 +79,33 @@ COPY src /home/ros/python
 USER root
 RUN bash /home/ros/.bashrc
 
+# RUN alias python=python3.9
+
 WORKDIR /home/ros/python/various_tools
-RUN sudo python3 -m pip install -e .
-RUN sudo python3 -m pip install -r requirements.txt
+RUN python3.9 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
 
 WORKDIR /home/ros/python/dynamic_obstacle_avoidance
-RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
+RUN python3.9 -m pip install -e .
 
 WORKDIR /home/ros/python/fast_obstacle_avoidance
-RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install -e .
+RUN python3.9 -m pip install -r requirements.txt
+RUN python3.9 -m pip install -e .
 
 # Resolve few conflicts
-RUN python3 -m pip install numpy --upgrade
-RUN python3 -m pip install --upgrade scikit-image
+RUN python3.9 -m pip install numpy --upgrade
+RUN python3.9 -m pip install --upgrade scikit-image
+
+COPY setup_ros_env.sh ${HOME}/setup_ros_env.sh
+RUN echo "bash ~/setup_ros_env.sh" >> ~/.bashrc
 
 # RUN export ROS_MASTER_URI=http://localhost:11311
-USER root
-ENV ROS_MASTER_URI http://192.168.13.110:11311
-ENV ROS_IP 192.168.13.120
+# USER root
 
 # WORKDIR ${HOME}
 WORKDIR ${HOME}/catkin_ws/src/qolo_fast_modulation/scripts
 
+# ENTRYPOINT tmux
 ENTRYPOINT tmux
 # ENTRYPOINT echo "Welcome to Docker"

@@ -148,6 +148,7 @@ class ObstacleAvoidanceQOLO(object):
         print("Initializiation starting.\n")
 
         rospy.init_node("Qolo_Modulation", anonymous=True)
+        print("Node is initialized.")
         if IS_SIMULATION:
             self.loop_rate = 10  # Hz
         else:
@@ -168,6 +169,7 @@ class ObstacleAvoidanceQOLO(object):
         self.save_name = save_name
         self.human_radius = human_radius
 
+        print("Creating Obstacle Publisher.")
         # Initiate first time to obstacle list
         if obstacle_list is None:
             self.obstacle_list = CrowdCircleContainer(
@@ -186,6 +188,7 @@ class ObstacleAvoidanceQOLO(object):
 
         self.obstacle_list.last_update_time = rospy.get_time()
 
+        print("Reaching target.")
         self.target_reached = False
 
         self.awaiting_pose = True
@@ -246,6 +249,7 @@ class ObstacleAvoidanceQOLO(object):
         self.pub_qolo_global_vel = rospy.Publisher(
             "qolo/global_vel", Twist, queue_size=1
         )  # Simulation
+        print("All publishers initialized.")
 
         self.tf_listener = tf.TransformListener()
 
